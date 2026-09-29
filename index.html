@@ -129,6 +129,23 @@ async function iniciar() {
 
 const PRECOS = {barber:[49.9,245,450],beauty:[69.9,350,645],desenvolve:[14.9,69.9,129.9],finance:[39.9,199,359],os:[59.9,299,549]};
 const PLN = ['Mensal','Semestral','Anual'], PLK = ['mensal','semestral','anual'], PER = ['/mês','/6 meses','/12 meses'];
+const PIX_CHAVE = '29858d90-02ba-4b85-a89c-a82401086516'; // troque aqui se sua chave Pix for outra
+const diasPara = v => v ? Math.round((new Date(v + 'T12:00:00') - new Date(hoje() + 'T12:00:00')) / 864e5) : null;
+function admChipVenc(c) {
+  const d = diasPara(c.vencimento);
+  if (d === null) return '';
+  if (d < 0) return `<span class="chip off">venceu há ${-d} d</span>`;
+  if (d <= 7) return `<span class="chip" style="background:rgba(245,158,11,.2);color:#FCD34D">vence em ${d} d</span>`;
+  return '';
+}
+window.admCobrar = id => {
+  const c = admLista.find(x => x.id === id); if (!c) return;
+  if (!c.whats) { alert('Cliente sem WhatsApp cadastrado.'); return; }
+  let n = c.whats.replace(/\D/g, ''); if (n.length <= 11) n = '55' + n;
+  const d = diasPara(c.vencimento), quando = d === null ? '' : d < 0 ? `venceu em ${dBR(c.vencimento)}` : `vence em ${dBR(c.vencimento)}`;
+  const msg = `Olá ${c.nome}! 😊\n\nSeu plano ${c.plano} do ${NOMES[c.sistema]} ${quando}.\n💰 Valor: ${fmt(c.valor)}${c.periodo || ''}\n\nPara renovar, pague via Pix:\n🔑 ${PIX_CHAVE}\n\nDepois de pagar, me envie o comprovante que eu renovo seu acesso na hora. Obrigado! 🙏`;
+  window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(msg), '_blank');
+};
 let admLista = [];
 
 async function fn(body) {
@@ -154,7 +171,7 @@ function admPlanos() {
 }
 
 async function painelAdmin() {
-  const { data: lista, error } = await sb.from('profiles').select('*').eq('role', 'client').order('created_at', { ascending: false });
+  const { data: lista, error } = await sb.from('profiles').select('*').eq('role', 'client').order('vencimento', { ascending: true, nullsFirst: false });
   if (error) { $('conteudo').innerHTML = '<p class="msg">Não foi possível carregar os clientes.</p>'; return; }
   admLista = lista || [];
   const ativos = admLista.filter(ativo).length;
@@ -164,6 +181,7 @@ async function painelAdmin() {
       <div class="card kpi"><small>Clientes</small><b>${admLista.length}</b></div>
       <div class="card kpi"><small>Ativos</small><b style="color:var(--ok)">${ativos}</b></div>
       <div class="card kpi"><small>Vencidos / bloqueados</small><b style="color:var(--bad)">${admLista.length - ativos}</b></div>
+      <div class="card kpi"><small>Vencem em 7 dias</small><b style="color:var(--warn)">${admLista.filter(c => { const d = diasPara(c.vencimento); return d !== null && d >= 0 && d <= 7; }).length}</b></div>
     </div>
     <div class="card"><h3 style="margin-bottom:.5rem">➕ Novo cliente</h3>
       <form id="formCli">
@@ -179,8 +197,9 @@ async function painelAdmin() {
       ${admLista.length ? admLista.map(c => `
         <div class="item">
           <div><b>${esc(c.nome)}</b><br><span class="mut">${NOMES[c.sistema] || '—'} • ${esc(c.plano || '—')} • vence: ${dBR(c.vencimento)}</span><br>
-          <span class="chip ${ativo(c) ? 'on' : 'off'}">${ativo(c) ? 'ATIVO' : 'BLOQUEADO'}</span> <span class="mut">${c.valor ? fmt(c.valor) + (c.periodo || '') : ''}</span></div>
+          <span class="chip ${ativo(c) ? 'on' : 'off'}">${ativo(c) ? 'ATIVO' : 'BLOQUEADO'}</span> ${admChipVenc(c)} <span class="mut">${c.valor ? fmt(c.valor) + (c.periodo || '') : ''}</span></div>
           <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:flex-start">
+            <button class="btn out sm" style="color:#25D366;border-color:#25D366" onclick="admCobrar('${c.id}')">💬 Cobrar</button>
             <button class="btn out sm" onclick="admRenovar('${c.id}')">Renovar</button>
             <button class="btn out sm" onclick="admAtivo('${c.id}', ${!c.ativo})">${c.ativo ? 'Bloquear' : 'Ativar'}</button>
             <button class="btn out sm" onclick="admSenha('${c.id}')">Senha</button>
