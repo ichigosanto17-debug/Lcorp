@@ -42,6 +42,12 @@ select option{background:#131A22}
 .bar .t{flex:1;background:rgba(255,255,255,.06);border-radius:6px}
 .pos{color:var(--ok)}.neg{color:var(--bad)}
 .btn.sm{padding:.4rem .75rem;font-size:.8rem;min-height:36px}
+.osm .tabs button.act{background:#F97316;border-color:#F97316;color:#1F0B00}
+.chip2{display:inline-block;padding:.15rem .6rem;border-radius:50px;font-size:.72rem;font-weight:700;margin-right:.3rem}
+textarea{width:100%;padding:.85rem 1rem;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:8px;color:var(--txt);font-size:1rem;font-family:inherit}
+details{margin-top:.5rem;font-size:.85rem;color:var(--mut)}details summary{cursor:pointer;color:#F97316;font-weight:600}
+.agm .tabs button.act{background:var(--ac);border-color:var(--ac);color:#fff}
+.agm details summary{color:var(--ac)}
 </style>
 </head>
 <body>
@@ -197,6 +203,8 @@ async function painelAdmin() {
 function areaCliente(p) {
   const ok = ativo(p);
   if (ok && p.sistema === 'finance') { finIniciar(p); return; }
+  if (ok && p.sistema === 'os') { osIniciar(); return; }
+  if (ok && (p.sistema === 'barber' || p.sistema === 'beauty')) { agIniciar(p.sistema); return; }
   $('conteudo').innerHTML = `
     <h2 style="margin:.5rem 0 1rem">Olá, ${esc(p.nome)}! 👋</h2>
     <div class="card">
@@ -296,6 +304,261 @@ async function finExcluir(id) {
   const { error } = await sb.from('fin_lancamentos').delete().eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; }
   await finCarregar();
+}
+
+/* ===== MÓDULO ORDEM DE SERVIÇOS ===== */
+const OS_ST = { aberta:['Aberta','#3B82F6'], andamento:['Em andamento','#F59E0B'], aguardando:['Aguardando peça','#A78BFA'], concluida:['Concluída','#10B981'], entregue:['Entregue','#94A3B8'] };
+const OS_PR = { baixa:'Baixa', normal:'Normal', urgente:'🔥 Urgente' };
+let osC = [], osO = [], osTab = 'dash', osFiltro = '';
+const agoraBR = () => new Date().toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+const osQt = (...s) => osO.filter(o => s.includes(o.status)).length;
+
+async function osIniciar() {
+  osTab = 'dash';
+  $('conteudo').innerHTML = `<div class="osm"><h2 style="margin:.5rem 0 1rem">🛠️ LCORP Ordem de Serviços</h2>
+    <div class="tabs">${[['dash','📊 Dashboard'],['nova','➕ Nova OS'],['ordens','📋 Ordens'],['cli','👥 Clientes']].map(t => `<button data-t="${t[0]}" class="${t[0] === osTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="osBody"><p class="mut">Carregando...</p></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    osTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    osDesenhar();
+  });
+  await osCarregar();
+}
+
+async function osCarregar() {
+  const [a, b] = await Promise.all([
+    sb.from('os_clientes').select('*').order('nome'),
+    sb.from('os_ordens').select('*').order('num', { ascending: false })
+  ]);
+  if (a.error || b.error) { $('osBody').innerHTML = '<p class="msg">Não foi possível carregar os dados.</p>'; return; }
+  osC = a.data; osO = b.data; osDesenhar();
+}
+
+function osItem(o) {
+  const c = osC.find(x => x.id === o.cliente_id), st = OS_ST[o.status];
+  return `<div class="item" style="display:block">
+    <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+      <div><b>#${o.num} — ${esc(o.equip)}</b><br><span class="mut">👤 ${esc(c ? c.nome : 'Cliente removido')} • ${dBR(o.data)}${o.prev ? ' • prev. ' + dBR(o.prev) : ''}</span><br>
+      <span class="chip2" style="background:${st[1]}33;color:${st[1]}">${st[0]}</span><span class="chip2" style="background:rgba(255,255,255,.08)">${OS_PR[o.prior]}</span></div>
+      <b>${fmt(o.valor)}</b></div>
+    <p class="mut" style="margin:.5rem 0">${esc(o.defeito)}</p>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+      <select style="width:auto;padding:.4rem .6rem;font-size:.85rem" onchange="osStatus(${o.id}, this.value)">${Object.entries(OS_ST).map(([k, v]) => `<option value="${k}" ${k === o.status ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+      <button class="btn out sm" onclick="osZap(${o.id})">💬 WhatsApp</button>
+      <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="osExcluir(${o.id})">🗑</button></div>
+    <details><summary>Histórico (${(o.hist || []).length})</summary><ul style="margin:.3rem 0 0 1.1rem">${(o.hist || []).map(h => `<li>${esc(h.d)} — ${esc(h.t)}</li>`).join('')}</ul></details></div>`;
+}
+
+function osDesenhar() {
+  const b = $('osBody');
+  if (osTab === 'dash') {
+    const fat = osO.filter(o => ['concluida','entregue'].includes(o.status)).reduce((s, o) => s + Number(o.valor), 0);
+    const pend = osO.filter(o => !['concluida','entregue'].includes(o.status)).reduce((s, o) => s + Number(o.valor), 0);
+    const mx = Math.max(1, ...Object.keys(OS_ST).map(k => osQt(k)));
+    b.innerHTML = `<div class="kpis">
+      <div class="card kpi"><small>Abertas</small><b>${osQt('aberta')}</b></div>
+      <div class="card kpi"><small>Em andamento</small><b>${osQt('andamento','aguardando')}</b></div>
+      <div class="card kpi"><small>Concluídas</small><b class="pos">${osQt('concluida','entregue')}</b></div>
+      <div class="card kpi"><small>Faturado</small><b class="pos">${fmt(fat)}</b></div>
+      <div class="card kpi"><small>Em aberto (R$)</small><b>${fmt(pend)}</b></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Ordens por status</h3>${Object.entries(OS_ST).map(([k, v]) => `<div class="bar"><span style="width:110px" class="mut">${v[0]}</span><span class="t"><i style="width:${osQt(k) / mx * 100}%;background:${v[1]}"></i></span><span>${osQt(k)}</span></div>`).join('')}</div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Últimas ordens</h3>${osO.slice(0, 3).map(osItem).join('') || '<p class="mut">Nenhuma ordem ainda.</p>'}</div>`;
+  } else if (osTab === 'nova') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Abrir ordem de serviço</h3>
+      ${osC.length ? '' : '<p style="color:var(--warn)">Cadastre um cliente na aba 👥 Clientes antes de abrir uma OS.</p>'}
+      <form id="osForm"><label>Cliente</label><select name="cli" required>${osC.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select>
+      <div class="row2"><div><label>Equipamento / Serviço</label><input name="equip" required placeholder="Ex.: Notebook Dell"></div>
+      <div><label>Prioridade</label><select name="prior"><option value="normal">Normal</option><option value="baixa">Baixa</option><option value="urgente">Urgente</option></select></div></div>
+      <label>Defeito / Descrição</label><textarea name="defeito" rows="3" required placeholder="O que o cliente relatou?"></textarea>
+      <div class="row2"><div><label>Valor estimado (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" value="0"></div>
+      <div><label>Previsão de entrega</label><input name="prev" type="date"></div></div>
+      <button class="btn full" style="background:#F97316;color:#1F0B00" type="submit">✅ Abrir OS</button></form></div>`;
+    $('osForm').onsubmit = osSalvar;
+  } else if (osTab === 'ordens') {
+    const L = osFiltro ? osO.filter(o => o.status === osFiltro) : osO;
+    b.innerHTML = `<label>Filtrar status</label><select id="osFil" style="max-width:260px;margin-bottom:1rem"><option value="">Todas</option>${Object.entries(OS_ST).map(([k, v]) => `<option value="${k}" ${k === osFiltro ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+      <div class="card">${L.map(osItem).join('') || '<p class="mut" style="text-align:center">Nenhuma ordem encontrada.</p>'}</div>`;
+    $('osFil').onchange = e => { osFiltro = e.target.value; osDesenhar(); };
+  } else {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Cadastrar cliente</h3>
+      <form id="osFormCli"><div class="row2"><div><label>Nome</label><input name="nome" required></div><div><label>WhatsApp</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX"></div></div>
+      <label>Observações</label><input name="obs" placeholder="Endereço, preferências...">
+      <button class="btn full" style="background:#F97316;color:#1F0B00" type="submit">✅ Cadastrar cliente</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Clientes e histórico</h3>${osC.length ? osC.map(c => {
+        const m = osO.filter(o => o.cliente_id === c.id);
+        return `<div class="item" style="display:block"><div style="display:flex;justify-content:space-between;gap:.5rem"><div><b>${esc(c.nome)}</b><br><span class="mut">📱 ${esc(c.tel) || '—'} ${c.obs ? '• ' + esc(c.obs) : ''}<br>${m.length} OS • ${fmt(m.reduce((s, o) => s + Number(o.valor), 0))}</span></div>
+          <button class="btn out sm" style="color:var(--bad);border-color:var(--bad);align-self:flex-start" onclick="osExcluirCli(${c.id})">🗑</button></div>
+          <details><summary>Ver ordens</summary>${m.map(o => `<div style="margin:.4rem 0"><b>#${o.num}</b> ${esc(o.equip)} — ${OS_ST[o.status][0]} — ${fmt(o.valor)}</div>`).join('') || '<p>Sem ordens.</p>'}</details></div>`;
+      }).join('') : '<p class="mut">Nenhum cliente cadastrado.</p>'}</div>`;
+    $('osFormCli').onsubmit = osSalvarCli;
+  }
+}
+
+async function osSalvarCli(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('os_clientes').insert({ nome: f.nome.value.trim(), tel: f.tel.value.trim(), obs: f.obs.value.trim() });
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar(); alert('✅ Cliente cadastrado!');
+}
+async function osSalvar(e) {
+  e.preventDefault(); const f = e.target.elements;
+  if (!f.cli.value) { alert('Cadastre e selecione um cliente.'); return; }
+  const num = osO.reduce((m, o) => Math.max(m, o.num), 0) + 1;
+  const { error } = await sb.from('os_ordens').insert({ num, cliente_id: Number(f.cli.value), equip: f.equip.value.trim(), defeito: f.defeito.value.trim(), valor: parseFloat(f.valor.value) || 0, prior: f.prior.value, prev: f.prev.value || null, status: 'aberta', data: hoje(), hist: [{ d: agoraBR(), t: 'OS aberta' }] });
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar(); alert(`✅ OS #${num} aberta!`);
+}
+async function osStatus(id, st) {
+  const o = osO.find(x => x.id === id); if (!o) return;
+  const { error } = await sb.from('os_ordens').update({ status: st, hist: [...(o.hist || []), { d: agoraBR(), t: 'Status: ' + OS_ST[st][0] }] }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar();
+}
+async function osExcluir(id) {
+  if (!confirm('Excluir esta OS?')) return;
+  const { error } = await sb.from('os_ordens').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar();
+}
+async function osExcluirCli(id) {
+  if (osO.some(o => o.cliente_id === id)) { alert('Este cliente possui ordens no histórico. Exclua as OS antes.'); return; }
+  if (!confirm('Excluir cliente?')) return;
+  const { error } = await sb.from('os_clientes').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar();
+}
+function osZap(id) {
+  const o = osO.find(x => x.id === id); if (!o) return;
+  const c = osC.find(x => x.id === o.cliente_id);
+  if (!c || !c.tel) { alert('Cliente sem WhatsApp cadastrado.'); return; }
+  let n = c.tel.replace(/\D/g, ''); if (n.length <= 11) n = '55' + n;
+  window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(`Olá ${c.nome}! Sua OS #${o.num} (${o.equip}) está: ${OS_ST[o.status][0]}. Valor: ${fmt(o.valor)}.`), '_blank');
+}
+
+/* ===== MÓDULO AGENDA (Barber e Beauty) ===== */
+const AG = {
+  barber: { ac:'#8B4513', ic:'💈', nome:'LCORP Barber', horas:['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'],
+    padrao:[['Corte',35],['Corte + Barba',50],['Barba',25],['Completo',70]] },
+  beauty: { ac:'#EC4899', ic:'✨', nome:'LCORP Beauty', horas:['09:00','10:00','11:00','14:00','15:00','16:00'],
+    padrao:[['Limpeza de Pele',80],['Massagem Relaxante',100],['Design de Sobrancelhas',45],['Pacote Estética Completo',200]] }
+};
+let agS = 'barber', agSv = [], agA = [], agTab = 'dash';
+const ST_AG = { agendado:['Agendado','#3B82F6'], concluido:['Concluído','#10B981'], cancelado:['Cancelado','#94A3B8'] };
+
+async function agIniciar(sis) {
+  agS = sis; agTab = 'dash'; const g = AG[sis];
+  $('conteudo').innerHTML = `<div class="agm" style="--ac:${g.ac}"><h2 style="margin:.5rem 0 1rem">${g.ic} ${g.nome}</h2>
+    <div class="tabs">${[['dash','📊 Início'],['novo','➕ Agendar'],['agenda','📅 Agenda'],['serv','✂️ Serviços']].map(t => `<button data-t="${t[0]}" class="${t[0] === agTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="agBody"><p class="mut">Carregando...</p></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    agTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    agDesenhar();
+  });
+  await agCarregar();
+}
+
+async function agCarregar() {
+  const [a, b] = await Promise.all([
+    sb.from('servicos').select('*').order('nome'),
+    sb.from('agendamentos').select('*').order('data').order('hora')
+  ]);
+  if (a.error || b.error) { $('agBody').innerHTML = '<p class="msg">Não foi possível carregar os dados. Confira se o script da agenda foi executado no Supabase.</p>'; return; }
+  agSv = a.data; agA = b.data; agDesenhar();
+}
+
+function agItem(a) {
+  const st = ST_AG[a.status];
+  return `<div class="item" style="display:block">
+    <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+      <div><b>${dBR(a.data)} • ${esc(a.hora)} — ${esc(a.cliente)}</b><br><span class="mut">${esc(a.servico)} • ${fmt(a.valor)}${a.tel ? ' • 📱 ' + esc(a.tel) : ''}</span><br>
+      <span class="chip2" style="background:${st[1]}33;color:${st[1]}">${st[0]}</span></div></div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-top:.5rem">
+      <select style="width:auto;padding:.4rem .6rem;font-size:.85rem" onchange="agStatus(${a.id}, this.value)">${Object.entries(ST_AG).map(([k, v]) => `<option value="${k}" ${k === a.status ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+      <button class="btn out sm" onclick="agZap(${a.id})">💬 WhatsApp</button>
+      <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="agExcluir(${a.id})">🗑</button></div></div>`;
+}
+
+function agHoras() {
+  const d = $('agD') ? $('agD').value : '', ocupadas = agA.filter(a => a.data === d && a.status !== 'cancelado').map(a => a.hora);
+  const livres = AG[agS].horas.filter(h => !ocupadas.includes(h));
+  if ($('agH')) $('agH').innerHTML = livres.length ? livres.map(h => `<option>${h}</option>`).join('') : '<option value="">Sem horários livres</option>';
+}
+
+function agDesenhar() {
+  const b = $('agBody'), h = hoje(), mes = h.slice(0, 7);
+  if (agTab === 'dash') {
+    const doDia = agA.filter(a => a.data === h && a.status !== 'cancelado');
+    const prev = doDia.filter(a => a.status === 'agendado').reduce((s, a) => s + Number(a.valor), 0);
+    const fat = agA.filter(a => a.status === 'concluido' && a.data.startsWith(mes)).reduce((s, a) => s + Number(a.valor), 0);
+    const prox = agA.filter(a => a.status === 'agendado' && a.data >= h).slice(0, 5);
+    b.innerHTML = `<div class="kpis">
+      <div class="card kpi"><small>Hoje</small><b>${doDia.length}</b></div>
+      <div class="card kpi"><small>Previsto hoje</small><b>${fmt(prev)}</b></div>
+      <div class="card kpi"><small>Faturado no mês</small><b class="pos">${fmt(fat)}</b></div>
+      <div class="card kpi"><small>Próximos</small><b>${agA.filter(a => a.status === 'agendado' && a.data >= h).length}</b></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Próximos horários</h3>${prox.map(agItem).join('') || '<p class="mut">Nenhum horário agendado.</p>'}</div>`;
+  } else if (agTab === 'novo') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Novo agendamento</h3>
+      ${agSv.length ? '' : '<p style="color:var(--warn)">Cadastre seus serviços na aba ✂️ Serviços antes de agendar.</p>'}
+      <form id="agForm"><div class="row2"><div><label>Cliente</label><input name="cliente" required></div><div><label>WhatsApp</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX"></div></div>
+      <label>Serviço</label><select name="serv" required>${agSv.map(s => `<option value="${s.id}">${esc(s.nome)} — ${fmt(s.valor)}</option>`).join('')}</select>
+      <div class="row2"><div><label>Data</label><input name="data" id="agD" type="date" required min="${h}" value="${h}"></div><div><label>Horário</label><select name="hora" id="agH" required></select></div></div>
+      <button class="btn full" style="background:var(--ac);color:#fff" type="submit">✅ Confirmar</button></form></div>`;
+    agHoras(); $('agD').onchange = agHoras; $('agForm').onsubmit = agSalvar;
+  } else if (agTab === 'agenda') {
+    const dia = window.agDia || h;
+    const L = agA.filter(a => a.data === dia);
+    b.innerHTML = `<label>Dia</label><input type="date" id="agDia" value="${dia}" style="max-width:220px;margin-bottom:1rem">
+      <div class="card">${L.map(agItem).join('') || '<p class="mut" style="text-align:center">Nenhum agendamento neste dia.</p>'}</div>`;
+    $('agDia').onchange = e => { window.agDia = e.target.value || h; agDesenhar(); };
+  } else {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Cadastrar serviço</h3>
+      <form id="agFormSv"><div class="row2"><div><label>Nome</label><input name="nome" required></div><div><label>Valor (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" required></div></div>
+      <button class="btn full" style="background:var(--ac);color:#fff" type="submit">✅ Adicionar</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Meus serviços</h3>${agSv.length ? agSv.map(s => `<div class="item"><div><b>${esc(s.nome)}</b><br><span class="mut">${fmt(s.valor)}</span></div>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="agExcluirSv(${s.id})">🗑</button></div>`).join('') : `<p class="mut">Nenhum serviço ainda.</p><button class="btn out" style="margin-top:.75rem" id="agPadrao">➕ Adicionar serviços padrão</button>`}</div>`;
+    $('agFormSv').onsubmit = agSalvarSv;
+    if ($('agPadrao')) $('agPadrao').onclick = async () => {
+      const { error } = await sb.from('servicos').insert(AG[agS].padrao.map(p => ({ nome: p[0], valor: p[1] })));
+      if (error) { alert('Erro: ' + error.message); return; } await agCarregar();
+    };
+  }
+}
+
+async function agSalvarSv(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('servicos').insert({ nome: f.nome.value.trim(), valor: parseFloat(f.valor.value) || 0 });
+  if (error) { alert('Não foi possível adicionar (talvez já exista).'); return; }
+  await agCarregar();
+}
+async function agExcluirSv(id) {
+  if (!confirm('Excluir este serviço?')) return;
+  const { error } = await sb.from('servicos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await agCarregar();
+}
+async function agSalvar(e) {
+  e.preventDefault(); const f = e.target.elements, s = agSv.find(x => x.id === Number(f.serv.value));
+  if (!s || !f.hora.value) { alert('Escolha o serviço e um horário livre.'); return; }
+  const { error } = await sb.from('agendamentos').insert({ cliente: f.cliente.value.trim(), tel: f.tel.value.trim(), servico: s.nome, valor: s.valor, data: f.data.value, hora: f.hora.value });
+  if (error) { alert(error.code === '23505' ? 'Esse horário já está ocupado.' : 'Erro: ' + error.message); return; }
+  await agCarregar(); alert('✅ Agendamento confirmado!');
+}
+async function agStatus(id, st) {
+  const { error } = await sb.from('agendamentos').update({ status: st }).eq('id', id);
+  if (error) { alert(error.code === '23505' ? 'Já existe outro cliente neste horário.' : 'Erro: ' + error.message); }
+  await agCarregar();
+}
+async function agExcluir(id) {
+  if (!confirm('Excluir este agendamento?')) return;
+  const { error } = await sb.from('agendamentos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await agCarregar();
+}
+function agZap(id) {
+  const a = agA.find(x => x.id === id); if (!a || !a.tel) { alert('Cliente sem WhatsApp cadastrado.'); return; }
+  let n = a.tel.replace(/\D/g, ''); if (n.length <= 11) n = '55' + n;
+  window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(`Olá ${a.cliente}! Confirmando seu horário: ${a.servico} em ${dBR(a.data)} às ${a.hora}.`), '_blank');
 }
 
 iniciar();
