@@ -48,6 +48,10 @@ textarea{width:100%;padding:.85rem 1rem;background:rgba(255,255,255,.05);border:
 details{margin-top:.5rem;font-size:.85rem;color:var(--mut)}details summary{cursor:pointer;color:#F97316;font-weight:600}
 .agm .tabs button.act{background:var(--ac);border-color:var(--ac);color:#fff}
 .agm details summary{color:var(--ac)}
+.dvm .tabs button.act{background:#8B5CF6;border-color:#8B5CF6;color:#fff}
+.chk{width:40px;height:40px;border-radius:50%;border:2px solid #8B5CF6;background:transparent;color:#fff;font-size:1.1rem;cursor:pointer;flex:none}
+.chk.on{background:#8B5CF6}
+.feito{opacity:.55;text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -204,6 +208,7 @@ function areaCliente(p) {
   const ok = ativo(p);
   if (ok && p.sistema === 'finance') { finIniciar(p); return; }
   if (ok && p.sistema === 'os') { osIniciar(); return; }
+  if (ok && p.sistema === 'desenvolve') { dvIniciar(); return; }
   if (ok && (p.sistema === 'barber' || p.sistema === 'beauty')) { agIniciar(p.sistema); return; }
   $('conteudo').innerHTML = `
     <h2 style="margin:.5rem 0 1rem">Olá, ${esc(p.nome)}! 👋</h2>
@@ -559,6 +564,99 @@ function agZap(id) {
   const a = agA.find(x => x.id === id); if (!a || !a.tel) { alert('Cliente sem WhatsApp cadastrado.'); return; }
   let n = a.tel.replace(/\D/g, ''); if (n.length <= 11) n = '55' + n;
   window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(`Olá ${a.cliente}! Confirmando seu horário: ${a.servico} em ${dBR(a.data)} às ${a.hora}.`), '_blank');
+}
+
+/* ===== MÓDULO DESENVOLVE ===== */
+let dvM = [], dvH = [], dvK = [], dvTab = 'metas';
+const diaISO = i => new Date(Date.now() - new Date().getTimezoneOffset() * 60000 - i * 864e5).toISOString().slice(0, 10);
+
+async function dvIniciar() {
+  dvTab = 'metas';
+  $('conteudo').innerHTML = `<div class="dvm"><h2 style="margin:.5rem 0 1rem">🧠 LCORP Desenvolve</h2>
+    <div class="tabs">${[['metas','🎯 Metas'],['rotina','📅 Rotina'],['prog','📊 Progresso']].map(t => `<button data-t="${t[0]}" class="${t[0] === dvTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="dvBody"><p class="mut">Carregando...</p></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    dvTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    dvDesenhar();
+  });
+  await dvCarregar();
+}
+
+async function dvCarregar() {
+  const [a, b, c] = await Promise.all([
+    sb.from('metas').select('*').order('concluida').order('prazo', { nullsFirst: false }),
+    sb.from('habitos').select('*').order('id'),
+    sb.from('habito_marcas').select('habito_id,data').gte('data', diaISO(60))
+  ]);
+  if (a.error || b.error || c.error) { $('dvBody').innerHTML = '<p class="msg">Não foi possível carregar. Confira se o script do Desenvolve foi executado no Supabase.</p>'; return; }
+  dvM = a.data; dvH = b.data; dvK = c.data; dvDesenhar();
+}
+
+const dvFeitos = d => dvK.filter(k => k.data === d).length;
+
+function dvDesenhar() {
+  const b = $('dvBody'), h = diaISO(0);
+  if (dvTab === 'metas') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Nova meta</h3>
+      <form id="dvFormM"><label>Meta</label><input name="titulo" required placeholder="Ex.: Ler 1 livro no mês">
+      <label>Prazo (opcional)</label><input name="prazo" type="date">
+      <button class="btn full" style="background:#8B5CF6" type="submit">✅ Adicionar meta</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Minhas metas</h3>${dvM.length ? dvM.map(m => `<div class="item" style="align-items:center">
+        <div class="${m.concluida ? 'feito' : ''}"><b>${esc(m.titulo)}</b>${m.prazo ? `<br><span class="mut">Prazo: ${dBR(m.prazo)}</span>` : ''}</div>
+        <div style="display:flex;gap:.4rem"><button class="chk ${m.concluida ? 'on' : ''}" onclick="dvMeta(${m.id}, ${!m.concluida})">✓</button>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="dvExcluirMeta(${m.id})">🗑</button></div></div>`).join('') : '<p class="mut">Nenhuma meta ainda.</p>'}</div>`;
+    $('dvFormM').onsubmit = dvSalvarMeta;
+  } else if (dvTab === 'rotina') {
+    const feitosHoje = dvK.filter(k => k.data === h).map(k => k.habito_id);
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Hoje — ${dBR(h)}</h3>${dvH.length ? dvH.map(x => `<div class="item" style="align-items:center">
+        <div class="${feitosHoje.includes(x.id) ? 'feito' : ''}"><b>${esc(x.nome)}</b></div>
+        <div style="display:flex;gap:.4rem"><button class="chk ${feitosHoje.includes(x.id) ? 'on' : ''}" onclick="dvMarcar(${x.id})">✓</button>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="dvExcluirHab(${x.id})">🗑</button></div></div>`).join('') : '<p class="mut">Nenhum hábito ainda. Adicione abaixo.</p>'}</div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Novo hábito</h3><form id="dvFormH" style="display:flex;gap:.5rem"><input name="nome" required placeholder="Ex.: Beber 2L de água"><button class="btn" style="background:#8B5CF6" type="submit">Adicionar</button></form></div>`;
+    $('dvFormH').onsubmit = dvSalvarHab;
+  } else {
+    const tot = dvM.length, ok = dvM.filter(m => m.concluida).length, pct = tot ? Math.round(ok / tot * 100) : 0;
+    const n = dvH.length, hoje2 = dvFeitos(h);
+    let seq = 0; for (let i = dvFeitos(h) >= n && n ? 0 : 1; i < 60 && n && dvFeitos(diaISO(i)) >= n; i++) seq++;
+    const dias = [6, 5, 4, 3, 2, 1, 0].map(i => { const d = diaISO(i); return { d, v: n ? Math.min(100, Math.round(dvFeitos(d) / n * 100)) : 0 }; });
+    b.innerHTML = `<div class="kpis">
+      <div class="card kpi"><small>Metas concluídas</small><b>${ok}/${tot}</b></div>
+      <div class="card kpi"><small>Hábitos hoje</small><b>${hoje2}/${n}</b></div>
+      <div class="card kpi"><small>Sequência</small><b class="pos">${seq} dia${seq === 1 ? '' : 's'}</b></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Metas: ${pct}%</h3><div class="bar"><span class="t"><i style="width:${pct}%;background:#8B5CF6"></i></span></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Hábitos nos últimos 7 dias</h3>${dias.map(x => `<div class="bar"><span style="width:60px" class="mut">${x.d.slice(8)}/${x.d.slice(5, 7)}</span><span class="t"><i style="width:${x.v}%;background:#8B5CF6"></i></span><span style="width:45px;text-align:right">${x.v}%</span></div>`).join('')}</div>`;
+  }
+}
+
+async function dvSalvarMeta(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('metas').insert({ titulo: f.titulo.value.trim(), prazo: f.prazo.value || null });
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvMeta(id, v) {
+  const { error } = await sb.from('metas').update({ concluida: v }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvExcluirMeta(id) {
+  if (!confirm('Excluir esta meta?')) return;
+  const { error } = await sb.from('metas').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvSalvarHab(e) {
+  e.preventDefault();
+  const { error } = await sb.from('habitos').insert({ nome: e.target.elements.nome.value.trim() });
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvMarcar(id) {
+  const h = diaISO(0), ja = dvK.some(k => k.habito_id === id && k.data === h);
+  const { error } = ja ? await sb.from('habito_marcas').delete().eq('habito_id', id).eq('data', h) : await sb.from('habito_marcas').insert({ habito_id: id, data: h });
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvExcluirHab(id) {
+  if (!confirm('Excluir este hábito e o histórico dele?')) return;
+  const { error } = await sb.from('habitos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
 }
 
 iniciar();
