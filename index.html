@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LCORP | Acesso</title>
+<style>
+:root{--bg:#0B0F14;--card:#131A22;--pri:#2563EB;--ok:#10B981;--bad:#EF4444;--warn:#F59E0B;--txt:#F3F4F6;--mut:#94A3B8;--bd:#1E293B;--r:12px}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+body{background:var(--bg);color:var(--txt);min-height:100vh}
+.hidden{display:none!important}
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem}
+.login{width:100%;max-width:400px;padding:2rem}
+h1 span{color:var(--pri)}
+label{display:block;margin:1rem 0 .4rem;font-size:.9rem}
+input{width:100%;padding:.85rem 1rem;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:8px;color:var(--txt);font-size:1rem}
+input:focus{outline:none;border-color:var(--pri)}
+.btn{padding:.85rem 1rem;border:none;border-radius:8px;font-weight:600;font-size:1rem;cursor:pointer;background:var(--pri);color:#fff;min-height:44px}
+.btn.full{width:100%;margin-top:1.25rem}
+.btn.out{background:transparent;border:1px solid var(--bd);color:var(--txt)}
+.btn:disabled{opacity:.6}
+.msg{margin-top:1rem;font-size:.9rem;color:var(--bad)}
+header{background:var(--card);border-bottom:1px solid var(--bd);padding:.8rem 1rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;position:sticky;top:0}
+.wrap{max-width:900px;margin:0 auto;padding:1rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1rem}
+.kpi small{color:var(--mut);display:block}.kpi b{font-size:1.5rem}
+.item{display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;padding:.8rem 0;border-bottom:1px solid var(--bd)}
+.item:last-child{border:none}
+.chip{display:inline-block;padding:.15rem .6rem;border-radius:50px;font-size:.72rem;font-weight:700}
+.on{background:rgba(16,185,129,.2);color:#6EE7B7}.off{background:rgba(239,68,68,.2);color:#FCA5A5}
+.mut{color:var(--mut);font-size:.88rem}
+.tabs{display:flex;gap:.5rem;overflow-x:auto;margin-bottom:1rem}
+.tabs button{padding:.7rem 1rem;background:transparent;border:1px solid var(--bd);color:var(--mut);border-radius:8px;cursor:pointer;font-weight:600;white-space:nowrap;min-height:44px}
+.tabs button.act{background:#14B8A6;border-color:#14B8A6;color:#04201D}
+select{width:100%;padding:.85rem 1rem;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:8px;color:var(--txt);font-size:1rem}
+select option{background:#131A22}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+@media(max-width:520px){.row2{grid-template-columns:1fr}}
+.bar{display:flex;align-items:center;gap:.5rem;margin:.45rem 0;font-size:.85rem}
+.bar i{display:block;height:14px;border-radius:6px;background:#14B8A6;min-width:2px}
+.bar .t{flex:1;background:rgba(255,255,255,.06);border-radius:6px}
+.pos{color:var(--ok)}.neg{color:var(--bad)}
+.btn.sm{padding:.4rem .75rem;font-size:.8rem;min-height:36px}
+</style>
+</head>
+<body>
+
+<div id="telaLogin" class="center">
+  <form id="formLogin" class="card login">
+    <h1>LCORP<span>.</span></h1>
+    <p class="mut">Acesse seu espaço</p>
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password" required>
+    <button id="btnEntrar" class="btn full" type="submit">Entrar</button>
+    <p id="erroLogin" class="msg hidden"></p>
+  </form>
+</div>
+
+<div id="telaApp" class="hidden">
+  <header>
+    <b>LCORP<span style="color:var(--pri)">.</span></b>
+    <span><span id="nomeUser" class="mut"></span> <button id="btnSair" class="btn out" style="padding:.4rem .8rem;min-height:36px">Sair</button></span>
+  </header>
+  <div class="wrap" id="conteudo"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://lkqpuliqsmsllezbjjmg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_EJt_2gWwUnPJou-aaEVNmQ_ZJrQU3CJ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const dBR = iso => iso ? iso.split('-').reverse().join('/') : 'sem vencimento';
+const NOMES = {barber:'💈 Barber', beauty:'✨ Beauty', desenvolve:'🧠 Desenvolve', finance:'💹 Finance', os:'🛠️ Ordem de Serviços'};
+
+function ativo(p) {
+  if (!p.ativo) return false;
+  if (!p.vencimento) return true;
+  return p.vencimento >= new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+
+function mostrar(app) {
+  $('telaLogin').classList.toggle('hidden', app);
+  $('telaApp').classList.toggle('hidden', !app);
+}
+
+$('formLogin').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('btnEntrar'), erro = $('erroLogin');
+  btn.disabled = true; btn.textContent = 'Entrando...'; erro.classList.add('hidden');
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('senha').value });
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if (error) { erro.textContent = 'E-mail ou senha incorretos.'; erro.classList.remove('hidden'); return; }
+  $('senha').value = '';
+  await iniciar();
+});
+
+$('btnSair').addEventListener('click', async () => { await sb.auth.signOut(); mostrar(false); });
+
+async function iniciar() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { mostrar(false); return; }
+  const { data: perfil, error } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+  if (error || !perfil) {
+    await sb.auth.signOut(); mostrar(false);
+    $('erroLogin').textContent = 'Seu acesso ainda não foi liberado. Fale com o administrador.';
+    $('erroLogin').classList.remove('hidden'); return;
+  }
+  $('nomeUser').textContent = perfil.nome;
+  mostrar(true);
+  if (perfil.role === 'admin') await painelAdmin(); else areaCliente(perfil);
+}
+
+const PRECOS = {barber:[49.9,245,450],beauty:[69.9,350,645],desenvolve:[14.9,69.9,129.9],finance:[39.9,199,359],os:[59.9,299,549]};
+const PLN = ['Mensal','Semestral','Anual'], PLK = ['mensal','semestral','anual'], PER = ['/mês','/6 meses','/12 meses'];
+let admLista = [];
+
+async function fn(body) {
+  const { data, error } = await sb.functions.invoke('smooth-function', { body });
+  if (error) {
+    let m = error.message;
+    try { const j = await error.context.json(); if (j.erro) m = j.erro; } catch (e) {}
+    throw new Error(m);
+  }
+  return data;
+}
+async function admAcao(body, ok) {
+  try { await fn(body); if (ok) alert(ok); await painelAdmin(); } catch (e) { alert('Erro: ' + e.message); }
+}
+window.admRenovar = id => { if (confirm('Renovar o plano deste cliente?')) admAcao({ acao: 'renovar', id }, '✅ Plano renovado!'); };
+window.admAtivo = (id, v) => admAcao({ acao: 'ativo', id, ativo: v });
+window.admSenha = id => { const s = prompt('Nova senha (mínimo 6 caracteres):'); if (s) admAcao({ acao: 'senha', id, senha: s }, '✅ Senha alterada!'); };
+window.admExcluir = id => { if (confirm('Excluir este cliente e todos os dados dele? Não dá para desfazer.')) admAcao({ acao: 'excluir', id }, 'Cliente excluído.'); };
+
+function admPlanos() {
+  const p = PRECOS[$('cSis').value];
+  $('cPl').innerHTML = PLK.map((k, i) => `<option value="${k}">${PLN[i]} — ${fmt(p[i])}${PER[i]}</option>`).join('');
+}
+
+async function painelAdmin() {
+  const { data: lista, error } = await sb.from('profiles').select('*').eq('role', 'client').order('created_at', { ascending: false });
+  if (error) { $('conteudo').innerHTML = '<p class="msg">Não foi possível carregar os clientes.</p>'; return; }
+  admLista = lista || [];
+  const ativos = admLista.filter(ativo).length;
+  $('conteudo').innerHTML = `
+    <h2 style="margin:.5rem 0 1rem">Painel do administrador 👋</h2>
+    <div class="kpis">
+      <div class="card kpi"><small>Clientes</small><b>${admLista.length}</b></div>
+      <div class="card kpi"><small>Ativos</small><b style="color:var(--ok)">${ativos}</b></div>
+      <div class="card kpi"><small>Vencidos / bloqueados</small><b style="color:var(--bad)">${admLista.length - ativos}</b></div>
+    </div>
+    <div class="card"><h3 style="margin-bottom:.5rem">➕ Novo cliente</h3>
+      <form id="formCli">
+        <label>Nome / Empresa</label><input name="nome" required>
+        <div class="row2"><div><label>WhatsApp</label><input name="whats" type="tel" placeholder="(87) 9XXXX-XXXX"></div>
+        <div><label>E-mail (login)</label><input name="email" type="email" required></div></div>
+        <label>Senha de acesso (mínimo 6)</label><input name="senha" type="text" minlength="6" required>
+        <div class="row2"><div><label>Sistema</label><select name="sistema" id="cSis">${Object.entries(NOMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div><label>Plano</label><select name="plano" id="cPl"></select></div></div>
+        <button class="btn full" id="btnCad" type="submit">✅ Cadastrar e gerar acesso</button>
+      </form></div>
+    <div class="card"><h3 style="margin-bottom:.5rem">Clientes</h3>
+      ${admLista.length ? admLista.map(c => `
+        <div class="item">
+          <div><b>${esc(c.nome)}</b><br><span class="mut">${NOMES[c.sistema] || '—'} • ${esc(c.plano || '—')} • vence: ${dBR(c.vencimento)}</span><br>
+          <span class="chip ${ativo(c) ? 'on' : 'off'}">${ativo(c) ? 'ATIVO' : 'BLOQUEADO'}</span> <span class="mut">${c.valor ? fmt(c.valor) + (c.periodo || '') : ''}</span></div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:flex-start">
+            <button class="btn out sm" onclick="admRenovar('${c.id}')">Renovar</button>
+            <button class="btn out sm" onclick="admAtivo('${c.id}', ${!c.ativo})">${c.ativo ? 'Bloquear' : 'Ativar'}</button>
+            <button class="btn out sm" onclick="admSenha('${c.id}')">Senha</button>
+            <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="admExcluir('${c.id}')">🗑</button>
+          </div>
+        </div>`).join('') : '<p class="mut">Nenhum cliente ainda.</p>'}
+    </div>`;
+  admPlanos();
+  $('cSis').onchange = admPlanos;
+  $('formCli').onsubmit = async e => {
+    e.preventDefault();
+    const f = e.target.elements, btn = $('btnCad'); btn.disabled = true; btn.textContent = 'Cadastrando...';
+    const dados = { acao: 'criar', nome: f.nome.value, whats: f.whats.value, email: f.email.value, senha: f.senha.value, sistema: f.sistema.value, plano: f.plano.value };
+    try {
+      await fn(dados);
+      const txt = `Olá ${dados.nome}! 😊\n\nSeus dados de acesso ao ${NOMES[dados.sistema]}:\n\n✅ Login: ${dados.email}\n🔑 Senha: ${dados.senha}\n\nLCORP`;
+      try { await navigator.clipboard.writeText(txt); alert('✅ Cliente cadastrado!\n\nOs dados de acesso foram copiados. É só colar no WhatsApp.'); }
+      catch (x) { alert('✅ Cliente cadastrado!\n\n' + txt); }
+      await painelAdmin();
+    } catch (err) { alert('Erro: ' + err.message); btn.disabled = false; btn.textContent = '✅ Cadastrar e gerar acesso'; }
+  };
+}
+
+function areaCliente(p) {
+  const ok = ativo(p);
+  if (ok && p.sistema === 'finance') { finIniciar(p); return; }
+  $('conteudo').innerHTML = `
+    <h2 style="margin:.5rem 0 1rem">Olá, ${esc(p.nome)}! 👋</h2>
+    <div class="card">
+      <p>${NOMES[p.sistema] || 'Sistema'} — plano <b>${esc(p.plano || '—')}</b></p>
+      <p class="mut" style="margin:.4rem 0">Vencimento: ${dBR(p.vencimento)}</p>
+      <span class="chip ${ok ? 'on' : 'off'}">${ok ? 'PLANO ATIVO' : 'PLANO VENCIDO'}</span>
+    </div>
+    <p class="mut">${ok ? 'Seu módulo estará disponível aqui na próxima etapa.' : 'Seu acesso está bloqueado. Entre em contato para renovar.'}</p>`;
+}
+
+/* ===== MÓDULO FINANCE ===== */
+const FIN_CATS = ['Vendas','Serviços','Salário','Moradia','Alimentação','Transporte','Impostos','Outros'];
+const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+let finL = [], finC = [], finTab = 'dash', finMes = hoje().slice(0,7);
+const soma = (a, t, s) => a.filter(l => l.tipo === t && l.status === s).reduce((x, l) => x + Number(l.valor), 0);
+
+async function finIniciar() {
+  finTab = 'dash';
+  $('conteudo').innerHTML = `<h2 style="margin:.5rem 0 1rem">💹 LCORP Finance</h2>
+    <div class="tabs">${[['dash','📊 Dashboard'],['lanc','➕ Lançar'],['hist','🧾 Histórico']].map(t => `<button data-t="${t[0]}" class="${t[0] === finTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="finBody"><p class="mut">Carregando...</p></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    finTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    finDesenhar();
+  });
+  await finCarregar();
+}
+
+async function finCarregar() {
+  const [a, b] = await Promise.all([
+    sb.from('fin_lancamentos').select('*').order('data', {ascending:false}).order('id', {ascending:false}),
+    sb.from('fin_categorias').select('*')
+  ]);
+  if (a.error || b.error) { $('finBody').innerHTML = '<p class="msg">Não foi possível carregar os dados.</p>'; return; }
+  finL = a.data; finC = b.data; finDesenhar();
+}
+
+function finDesenhar() {
+  const b = $('finBody');
+  if (finTab === 'dash') {
+    const M = finL.filter(l => l.data.startsWith(finMes)), rec = soma(M, 'receita', 'pago'), des = soma(M, 'despesa', 'pago'), s = rec - des;
+    const pc = {}; M.filter(l => l.tipo === 'despesa').forEach(l => { const c = l.cat || 'Outros'; pc[c] = (pc[c] || 0) + Number(l.valor); });
+    const cs = Object.entries(pc).sort((x, y) => y[1] - x[1]), mx = cs.length ? cs[0][1] : 1;
+    b.innerHTML = `<label>Mês</label><input type="month" id="finMesIn" value="${finMes}" style="max-width:220px">
+      <div class="kpis" style="margin-top:1rem">
+        <div class="card kpi"><small>Saldo do mês</small><b class="${s >= 0 ? 'pos' : 'neg'}">${fmt(s)}</b></div>
+        <div class="card kpi"><small>Receitas</small><b class="pos">${fmt(rec)}</b></div>
+        <div class="card kpi"><small>Despesas</small><b class="neg">${fmt(des)}</b></div>
+        <div class="card kpi"><small>A receber</small><b>${fmt(soma(M, 'receita', 'pendente'))}</b></div>
+        <div class="card kpi"><small>A pagar</small><b>${fmt(soma(M, 'despesa', 'pendente'))}</b></div>
+      </div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Despesas por categoria</h3>${cs.length ? cs.map(([c, v]) => `<div class="bar"><span style="width:100px" class="mut">${esc(c)}</span><span class="t"><i style="width:${v / mx * 100}%"></i></span><span>${fmt(v)}</span></div>`).join('') : '<p class="mut">Sem despesas neste mês.</p>'}</div>`;
+    $('finMesIn').onchange = e => { finMes = e.target.value || finMes; finDesenhar(); };
+  } else if (finTab === 'lanc') {
+    const cats = [...FIN_CATS, ...finC.map(c => c.nome)];
+    b.innerHTML = `<div class="card"><form id="finForm">
+        <div class="row2"><div><label>Tipo</label><select name="tipo"><option value="receita">⬆️ Receita</option><option value="despesa">⬇️ Despesa</option></select></div>
+        <div><label>Status</label><select name="status"><option value="pago">Pago / Recebido</option><option value="pendente">Pendente</option></select></div></div>
+        <label>Descrição</label><input name="descr" required>
+        <div class="row2"><div><label>Valor (R$)</label><input name="valor" type="number" step="0.01" min="0.01" inputmode="decimal" required></div>
+        <div><label>Data</label><input name="data" type="date" required value="${hoje()}"></div></div>
+        <label>Categoria</label><select name="cat">${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select>
+        <button class="btn full" style="background:#14B8A6;color:#04201D" type="submit">✅ Salvar lançamento</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Nova categoria</h3><div style="display:flex;gap:.5rem"><input id="finNC" placeholder="Nome"><button class="btn out" id="finAddC" type="button">Adicionar</button></div></div>`;
+    $('finForm').onsubmit = finSalvar; $('finAddC').onclick = finAddCat;
+  } else {
+    b.innerHTML = finL.length ? `<div class="card">${finL.map(l => `<div class="item">
+        <div><b>${esc(l.descr)}</b><br><span class="mut">${esc(l.cat || '')} • ${dBR(l.data)} • ${l.status === 'pago' ? '✅ Pago' : '⏳ Pendente'}</span></div>
+        <div style="text-align:right"><b class="${l.tipo === 'receita' ? 'pos' : 'neg'}">${l.tipo === 'receita' ? '+' : '−'} ${fmt(l.valor)}</b><br>
+        <button class="btn out sm" onclick="finBaixa(${l.id})">${l.status === 'pago' ? 'Reabrir' : 'Dar baixa'}</button>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="finExcluir(${l.id})">🗑</button></div></div>`).join('')}</div>`
+      : '<p class="mut" style="text-align:center;padding:1.5rem">Nenhum lançamento ainda.</p>';
+  }
+}
+
+async function finSalvar(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('fin_lancamentos').insert({ tipo: f.tipo.value, descr: f.descr.value.trim(), cat: f.cat.value, valor: parseFloat(f.valor.value), data: f.data.value, status: f.status.value });
+  if (error) { alert('Não foi possível salvar: ' + error.message); return; }
+  await finCarregar(); alert('✅ Lançamento salvo!');
+}
+async function finAddCat() {
+  const v = $('finNC').value.trim(); if (!v) return;
+  const { error } = await sb.from('fin_categorias').insert({ nome: v });
+  if (error) { alert('Não foi possível adicionar (talvez já exista).'); return; }
+  await finCarregar();
+}
+async function finBaixa(id) {
+  const l = finL.find(x => x.id === id); if (!l) return;
+  const { error } = await sb.from('fin_lancamentos').update({ status: l.status === 'pago' ? 'pendente' : 'pago' }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await finCarregar();
+}
+async function finExcluir(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  const { error } = await sb.from('fin_lancamentos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await finCarregar();
+}
+
+iniciar();
+</script>
+</body>
+</html>
