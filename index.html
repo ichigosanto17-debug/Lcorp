@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LCORP | Acesso</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B0F14">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{--bg:#0B0F14;--card:#131A22;--pri:#2563EB;--ok:#10B981;--bad:#EF4444;--warn:#F59E0B;--txt:#F3F4F6;--mut:#94A3B8;--bd:#1E293B;--r:12px}
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
@@ -72,7 +75,7 @@ details{margin-top:.5rem;font-size:.85rem;color:var(--mut)}details summary{curso
 <div id="telaApp" class="hidden">
   <header>
     <b>LCORP<span style="color:var(--pri)">.</span></b>
-    <span><span id="nomeUser" class="mut"></span> <button id="btnSair" class="btn out" style="padding:.4rem .8rem;min-height:36px">Sair</button></span>
+    <span><span id="nomeUser" class="mut"></span> <button id="btnInstalar" class="btn out hidden" style="padding:.4rem .8rem;min-height:36px">📲 Instalar</button> <button id="btnSair" class="btn out" style="padding:.4rem .8rem;min-height:36px">Sair</button></span>
   </header>
   <div class="wrap" id="conteudo"></div>
 </div>
@@ -677,6 +680,13 @@ async function dvExcluirHab(id) {
   const { error } = await sb.from('habitos').delete().eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
 }
+
+/* ===== PWA ===== */
+let pwaEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); pwaEvt = e; $('btnInstalar').classList.remove('hidden'); });
+$('btnInstalar').onclick = async () => { if (!pwaEvt) return; pwaEvt.prompt(); await pwaEvt.userChoice; pwaEvt = null; $('btnInstalar').classList.add('hidden'); };
+window.addEventListener('appinstalled', () => $('btnInstalar').classList.add('hidden'));
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 iniciar();
 </script>
