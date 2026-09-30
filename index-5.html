@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LCORP | Acesso</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B0F14">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#0B0F14;--card:#131A22;--pri:#2563EB;--ok:#10B981;--bad:#EF4444;--warn:#F59E0B;--txt:#F3F4F6;--mut:#94A3B8;--bd:#1E293B;--r:12px}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+body{background:var(--bg);color:var(--txt);min-height:100vh}
+.hidden{display:none!important}
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem}
+.login{width:100%;max-width:400px;padding:2rem}
+h1 span{color:var(--pri)}
+label{display:block;margin:1rem 0 .4rem;font-size:.9rem}
+input{width:100%;padding:.85rem 1rem;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:8px;color:var(--txt);font-size:1rem}
+input:focus{outline:none;border-color:var(--pri)}
+.btn{padding:.85rem 1rem;border:none;border-radius:8px;font-weight:600;font-size:1rem;cursor:pointer;background:var(--pri);color:#fff;min-height:44px}
+.btn.full{width:100%;margin-top:1.25rem}
+.btn.out{background:transparent;border:1px solid var(--bd);color:var(--txt)}
+.btn:disabled{opacity:.6}
+.msg{margin-top:1rem;font-size:.9rem;color:var(--bad)}
+header{background:var(--card);border-bottom:1px solid var(--bd);padding:.8rem 1rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;position:sticky;top:0}
+.wrap{max-width:900px;margin:0 auto;padding:1rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1rem}
+.kpi small{color:var(--mut);display:block}.kpi b{font-size:1.5rem}
+.item{display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;padding:.8rem 0;border-bottom:1px solid var(--bd)}
+.item:last-child{border:none}
+.chip{display:inline-block;padding:.15rem .6rem;border-radius:50px;font-size:.72rem;font-weight:700}
+.on{background:rgba(16,185,129,.2);color:#6EE7B7}.off{background:rgba(239,68,68,.2);color:#FCA5A5}
+.mut{color:var(--mut);font-size:.88rem}
+.tabs{display:flex;gap:.5rem;overflow-x:auto;margin-bottom:1rem}
+.tabs button{padding:.7rem 1rem;background:transparent;border:1px solid var(--bd);color:var(--mut);border-radius:8px;cursor:pointer;font-weight:600;white-space:nowrap;min-height:44px}
+.tabs button.act{background:#14B8A6;border-color:#14B8A6;color:#04201D}
+select{width:100%;padding:.85rem 1rem;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:8px;color:var(--txt);font-size:1rem}
+select option{background:#131A22}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+@media(max-width:520px){.row2{grid-template-columns:1fr}}
+.bar{display:flex;align-items:center;gap:.5rem;margin:.45rem 0;font-size:.85rem}
+.bar i{display:block;height:14px;border-radius:6px;background:#14B8A6;min-width:2px}
+.bar .t{flex:1;background:rgba(255,255,255,.06);border-radius:6px}
+.pos{color:var(--ok)}.neg{color:var(--bad)}
+.btn.sm{padding:.4rem .75rem;font-size:.8rem;min-height:36px}
+.osm .tabs button.act{background:#F97316;border-color:#F97316;color:#1F0B00}
+.chip2{display:inline-block;padding:.15rem .6rem;border-radius:50px;font-size:.72rem;font-weight:700;margin-right:.3rem}
+textarea{width:100%;padding:.85rem 1rem;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:8px;color:var(--txt);font-size:1rem;font-family:inherit}
+details{margin-top:.5rem;font-size:.85rem;color:var(--mut)}details summary{cursor:pointer;color:#F97316;font-weight:600}
+.agm .tabs button.act{background:var(--ac);border-color:var(--ac);color:#fff}
+.agm details summary{color:var(--ac)}
+.dvm .tabs button.act{background:#8B5CF6;border-color:#8B5CF6;color:#fff}
+.chk{width:40px;height:40px;border-radius:50%;border:2px solid #8B5CF6;background:transparent;color:#fff;font-size:1.1rem;cursor:pointer;flex:none}
+.chk.on{background:#8B5CF6}
+.feito{opacity:.55;text-decoration:line-through}
+.cmm .tabs button.act{background:#0EA5E9;border-color:#0EA5E9;color:#04202D}
+.cmm details summary{color:#0EA5E9}
+</style>
+</head>
+<body>
+
+<div id="telaLogin" class="center">
+  <form id="formLogin" class="card login">
+    <h1>LCORP<span>.</span></h1>
+    <p class="mut">Acesse seu espaço</p>
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password" required>
+    <button id="btnEntrar" class="btn full" type="submit">Entrar</button>
+    <p id="erroLogin" class="msg hidden"></p>
+  </form>
+</div>
+
+<div id="telaApp" class="hidden">
+  <header>
+    <b>LCORP<span style="color:var(--pri)">.</span></b>
+    <span><span id="nomeUser" class="mut"></span> <button id="btnInstalar" class="btn out hidden" style="padding:.4rem .8rem;min-height:36px">📲 Instalar</button> <button id="btnSair" class="btn out" style="padding:.4rem .8rem;min-height:36px">Sair</button></span>
+  </header>
+  <div class="wrap" id="conteudo"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://lkqpuliqsmsllezbjjmg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_EJt_2gWwUnPJou-aaEVNmQ_ZJrQU3CJ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const dBR = iso => iso ? iso.split('-').reverse().join('/') : 'sem vencimento';
+const NOMES = {barber:'💈 Barber', beauty:'✨ Beauty', desenvolve:'🧠 Desenvolve', finance:'💹 Finance', os:'🛠️ Ordem de Serviços', comercio:'🛍️ Comércio'};
+
+function ativo(p) {
+  if (!p.ativo) return false;
+  if (!p.vencimento) return true;
+  return p.vencimento >= new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+
+function mostrar(app) {
+  $('telaLogin').classList.toggle('hidden', app);
+  $('telaApp').classList.toggle('hidden', !app);
+}
+
+$('formLogin').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('btnEntrar'), erro = $('erroLogin');
+  btn.disabled = true; btn.textContent = 'Entrando...'; erro.classList.add('hidden');
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('senha').value });
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if (error) { erro.textContent = 'E-mail ou senha incorretos.'; erro.classList.remove('hidden'); return; }
+  $('senha').value = '';
+  await iniciar();
+});
+
+$('btnSair').addEventListener('click', async () => { await sb.auth.signOut(); mostrar(false); });
+
+async function iniciar() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { mostrar(false); return; }
+  const { data: perfil, error } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+  if (error || !perfil) {
+    await sb.auth.signOut(); mostrar(false);
+    $('erroLogin').textContent = 'Seu acesso ainda não foi liberado. Fale com o administrador.';
+    $('erroLogin').classList.remove('hidden'); return;
+  }
+  $('nomeUser').textContent = perfil.nome;
+  mostrar(true);
+  if (perfil.role === 'admin') await painelAdmin(); else areaCliente(perfil);
+}
+
+const PRECOS = {barber:[49.9,245,450],beauty:[69.9,350,645],desenvolve:[14.9,69.9,129.9],finance:[39.9,199,359],os:[59.9,299,549],comercio:[79.9,399,719]};
+const PLN = ['Mensal','Semestral','Anual'], PLK = ['mensal','semestral','anual'], PER = ['/mês','/6 meses','/12 meses'];
+const PIX_CHAVE = '29858d90-02ba-4b85-a89c-a82401086516'; // troque aqui se sua chave Pix for outra
+const diasPara = v => v ? Math.round((new Date(v + 'T12:00:00') - new Date(hoje() + 'T12:00:00')) / 864e5) : null;
+function admChipVenc(c) {
+  const d = diasPara(c.vencimento);
+  if (d === null) return '';
+  if (d < 0) return `<span class="chip off">venceu há ${-d} d</span>`;
+  if (d <= 7) return `<span class="chip" style="background:rgba(245,158,11,.2);color:#FCD34D">vence em ${d} d</span>`;
+  return '';
+}
+window.admCobrar = id => {
+  const c = admLista.find(x => x.id === id); if (!c) return;
+  if (!c.whats) { alert('Cliente sem WhatsApp cadastrado.'); return; }
+  let n = c.whats.replace(/\D/g, ''); if (n.length <= 11) n = '55' + n;
+  const d = diasPara(c.vencimento), quando = d === null ? '' : d < 0 ? `venceu em ${dBR(c.vencimento)}` : `vence em ${dBR(c.vencimento)}`;
+  const msg = `Olá ${c.nome}! 😊\n\nSeu plano ${c.plano} do ${NOMES[c.sistema]} ${quando}.\n💰 Valor: ${fmt(c.valor)}${c.periodo || ''}\n\nPara renovar, pague via Pix:\n🔑 ${PIX_CHAVE}\n\nDepois de pagar, me envie o comprovante que eu renovo seu acesso na hora. Obrigado! 🙏`;
+  window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(msg), '_blank');
+};
+let admLista = [];
+
+async function fn(body) {
+  const { data, error } = await sb.functions.invoke('smooth-function', { body });
+  if (error) {
+    let m = error.message;
+    try { const j = await error.context.json(); if (j.erro) m = j.erro; } catch (e) {}
+    throw new Error(m);
+  }
+  return data;
+}
+async function admAcao(body, ok) {
+  try { await fn(body); if (ok) alert(ok); await painelAdmin(); } catch (e) { alert('Erro: ' + e.message); }
+}
+window.admRenovar = id => { if (confirm('Renovar o plano deste cliente?')) admAcao({ acao: 'renovar', id }, '✅ Plano renovado!'); };
+window.admAtivo = (id, v) => admAcao({ acao: 'ativo', id, ativo: v });
+window.admSenha = id => { const s = prompt('Nova senha (mínimo 6 caracteres):'); if (s) admAcao({ acao: 'senha', id, senha: s }, '✅ Senha alterada!'); };
+window.admExcluir = id => { if (confirm('Excluir este cliente e todos os dados dele? Não dá para desfazer.')) admAcao({ acao: 'excluir', id }, 'Cliente excluído.'); };
+
+function admPlanos() {
+  const p = PRECOS[$('cSis').value];
+  $('cPl').innerHTML = PLK.map((k, i) => `<option value="${k}">${PLN[i]} — ${fmt(p[i])}${PER[i]}</option>`).join('');
+}
+
+async function painelAdmin() {
+  const { data: lista, error } = await sb.from('profiles').select('*').eq('role', 'client').order('vencimento', { ascending: true, nullsFirst: false });
+  if (error) { $('conteudo').innerHTML = '<p class="msg">Não foi possível carregar os clientes.</p>'; return; }
+  admLista = lista || [];
+  const ativos = admLista.filter(ativo).length;
+  $('conteudo').innerHTML = `
+    <h2 style="margin:.5rem 0 1rem">Painel do administrador 👋</h2>
+    <div class="kpis">
+      <div class="card kpi"><small>Clientes</small><b>${admLista.length}</b></div>
+      <div class="card kpi"><small>Ativos</small><b style="color:var(--ok)">${ativos}</b></div>
+      <div class="card kpi"><small>Vencidos / bloqueados</small><b style="color:var(--bad)">${admLista.length - ativos}</b></div>
+      <div class="card kpi"><small>Vencem em 7 dias</small><b style="color:var(--warn)">${admLista.filter(c => { const d = diasPara(c.vencimento); return d !== null && d >= 0 && d <= 7; }).length}</b></div>
+    </div>
+    <div class="card"><h3 style="margin-bottom:.5rem">➕ Novo cliente</h3>
+      <form id="formCli">
+        <label>Nome / Empresa</label><input name="nome" required>
+        <div class="row2"><div><label>WhatsApp</label><input name="whats" type="tel" placeholder="(87) 9XXXX-XXXX"></div>
+        <div><label>E-mail (login)</label><input name="email" type="email" required></div></div>
+        <label>Senha de acesso (mínimo 6)</label><input name="senha" type="text" minlength="6" required>
+        <div class="row2"><div><label>Sistema</label><select name="sistema" id="cSis">${Object.entries(NOMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div><label>Plano</label><select name="plano" id="cPl"></select></div></div>
+        <button class="btn full" id="btnCad" type="submit">✅ Cadastrar e gerar acesso</button>
+      </form></div>
+    <div class="card"><h3 style="margin-bottom:.5rem">Clientes</h3>
+      ${admLista.length ? admLista.map(c => `
+        <div class="item">
+          <div><b>${esc(c.nome)}</b><br><span class="mut">${NOMES[c.sistema] || '—'} • ${esc(c.plano || '—')} • vence: ${dBR(c.vencimento)}</span><br>
+          <span class="chip ${ativo(c) ? 'on' : 'off'}">${ativo(c) ? 'ATIVO' : 'BLOQUEADO'}</span> ${admChipVenc(c)} <span class="mut">${c.valor ? fmt(c.valor) + (c.periodo || '') : ''}</span></div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:flex-start">
+            <button class="btn out sm" style="color:#25D366;border-color:#25D366" onclick="admCobrar('${c.id}')">💬 Cobrar</button>
+            <button class="btn out sm" onclick="admRenovar('${c.id}')">Renovar</button>
+            <button class="btn out sm" onclick="admAtivo('${c.id}', ${!c.ativo})">${c.ativo ? 'Bloquear' : 'Ativar'}</button>
+            <button class="btn out sm" onclick="admSenha('${c.id}')">Senha</button>
+            <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="admExcluir('${c.id}')">🗑</button>
+          </div>
+        </div>`).join('') : '<p class="mut">Nenhum cliente ainda.</p>'}
+    </div>`;
+  admPlanos();
+  $('cSis').onchange = admPlanos;
+  $('formCli').onsubmit = async e => {
+    e.preventDefault();
+    const f = e.target.elements, btn = $('btnCad'); btn.disabled = true; btn.textContent = 'Cadastrando...';
+    const dados = { acao: 'criar', nome: f.nome.value, whats: f.whats.value, email: f.email.value, senha: f.senha.value, sistema: f.sistema.value, plano: f.plano.value };
+    try {
+      await fn(dados);
+      const txt = `Olá ${dados.nome}! 😊\n\nSeus dados de acesso ao ${NOMES[dados.sistema]}:\n\n✅ Login: ${dados.email}\n🔑 Senha: ${dados.senha}\n\nLCORP`;
+      try { await navigator.clipboard.writeText(txt); alert('✅ Cliente cadastrado!\n\nOs dados de acesso foram copiados. É só colar no WhatsApp.'); }
+      catch (x) { alert('✅ Cliente cadastrado!\n\n' + txt); }
+      await painelAdmin();
+    } catch (err) { alert('Erro: ' + err.message); btn.disabled = false; btn.textContent = '✅ Cadastrar e gerar acesso'; }
+  };
+}
+
+function areaCliente(p) {
+  const ok = ativo(p);
+  if (ok && p.sistema === 'finance') { finIniciar(p); return; }
+  if (ok && p.sistema === 'os') { osIniciar(); return; }
+  if (ok && p.sistema === 'comercio') { cmIniciar(); return; }
+  if (ok && p.sistema === 'desenvolve') { dvIniciar(); return; }
+  if (ok && (p.sistema === 'barber' || p.sistema === 'beauty')) { agIniciar(p.sistema); return; }
+  $('conteudo').innerHTML = `
+    <h2 style="margin:.5rem 0 1rem">Olá, ${esc(p.nome)}! 👋</h2>
+    <div class="card">
+      <p>${NOMES[p.sistema] || 'Sistema'} — plano <b>${esc(p.plano || '—')}</b></p>
+      <p class="mut" style="margin:.4rem 0">Vencimento: ${dBR(p.vencimento)}</p>
+      <span class="chip ${ok ? 'on' : 'off'}">${ok ? 'PLANO ATIVO' : 'PLANO VENCIDO'}</span>
+    </div>
+    <p class="mut">${ok ? 'Seu módulo estará disponível aqui na próxima etapa.' : 'Seu acesso está bloqueado. Entre em contato para renovar.'}</p>`;
+}
+
+/* ===== MÓDULO FINANCE ===== */
+const FIN_CATS = ['Vendas','Serviços','Salário','Moradia','Alimentação','Transporte','Impostos','Outros'];
+const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+let finL = [], finC = [], finTab = 'dash', finMes = hoje().slice(0,7);
+const soma = (a, t, s) => a.filter(l => l.tipo === t && l.status === s).reduce((x, l) => x + Number(l.valor), 0);
+
+async function finIniciar() {
+  finTab = 'dash';
+  $('conteudo').innerHTML = `<h2 style="margin:.5rem 0 1rem">💹 LCORP Finance</h2>
+    <div class="tabs">${[['dash','📊 Dashboard'],['lanc','➕ Lançar'],['hist','🧾 Histórico']].map(t => `<button data-t="${t[0]}" class="${t[0] === finTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="finBody"><p class="mut">Carregando...</p></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    finTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    finDesenhar();
+  });
+  await finCarregar();
+}
+
+async function finCarregar() {
+  const [a, b] = await Promise.all([
+    sb.from('fin_lancamentos').select('*').order('data', {ascending:false}).order('id', {ascending:false}),
+    sb.from('fin_categorias').select('*')
+  ]);
+  if (a.error || b.error) { $('finBody').innerHTML = '<p class="msg">Não foi possível carregar os dados.</p>'; return; }
+  finL = a.data; finC = b.data; finDesenhar();
+}
+
+function finDesenhar() {
+  const b = $('finBody');
+  if (finTab === 'dash') {
+    const M = finL.filter(l => l.data.startsWith(finMes)), rec = soma(M, 'receita', 'pago'), des = soma(M, 'despesa', 'pago'), s = rec - des;
+    const pc = {}; M.filter(l => l.tipo === 'despesa').forEach(l => { const c = l.cat || 'Outros'; pc[c] = (pc[c] || 0) + Number(l.valor); });
+    const cs = Object.entries(pc).sort((x, y) => y[1] - x[1]), mx = cs.length ? cs[0][1] : 1;
+    b.innerHTML = `<label>Mês</label><input type="month" id="finMesIn" value="${finMes}" style="max-width:220px">
+      <div class="kpis" style="margin-top:1rem">
+        <div class="card kpi"><small>Saldo do mês</small><b class="${s >= 0 ? 'pos' : 'neg'}">${fmt(s)}</b></div>
+        <div class="card kpi"><small>Receitas</small><b class="pos">${fmt(rec)}</b></div>
+        <div class="card kpi"><small>Despesas</small><b class="neg">${fmt(des)}</b></div>
+        <div class="card kpi"><small>A receber</small><b>${fmt(soma(M, 'receita', 'pendente'))}</b></div>
+        <div class="card kpi"><small>A pagar</small><b>${fmt(soma(M, 'despesa', 'pendente'))}</b></div>
+      </div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Despesas por categoria</h3>${cs.length ? cs.map(([c, v]) => `<div class="bar"><span style="width:100px" class="mut">${esc(c)}</span><span class="t"><i style="width:${v / mx * 100}%"></i></span><span>${fmt(v)}</span></div>`).join('') : '<p class="mut">Sem despesas neste mês.</p>'}</div>`;
+    $('finMesIn').onchange = e => { finMes = e.target.value || finMes; finDesenhar(); };
+  } else if (finTab === 'lanc') {
+    const cats = [...FIN_CATS, ...finC.map(c => c.nome)];
+    b.innerHTML = `<div class="card"><form id="finForm">
+        <div class="row2"><div><label>Tipo</label><select name="tipo"><option value="receita">⬆️ Receita</option><option value="despesa">⬇️ Despesa</option></select></div>
+        <div><label>Status</label><select name="status"><option value="pago">Pago / Recebido</option><option value="pendente">Pendente</option></select></div></div>
+        <label>Descrição</label><input name="descr" required>
+        <div class="row2"><div><label>Valor (R$)</label><input name="valor" type="number" step="0.01" min="0.01" inputmode="decimal" required></div>
+        <div><label>Data</label><input name="data" type="date" required value="${hoje()}"></div></div>
+        <label>Categoria</label><select name="cat">${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select>
+        <button class="btn full" style="background:#14B8A6;color:#04201D" type="submit">✅ Salvar lançamento</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Nova categoria</h3><div style="display:flex;gap:.5rem"><input id="finNC" placeholder="Nome"><button class="btn out" id="finAddC" type="button">Adicionar</button></div></div>`;
+    $('finForm').onsubmit = finSalvar; $('finAddC').onclick = finAddCat;
+  } else {
+    b.innerHTML = finL.length ? `<div class="card">${finL.map(l => `<div class="item">
+        <div><b>${esc(l.descr)}</b><br><span class="mut">${esc(l.cat || '')} • ${dBR(l.data)} • ${l.status === 'pago' ? '✅ Pago' : '⏳ Pendente'}</span></div>
+        <div style="text-align:right"><b class="${l.tipo === 'receita' ? 'pos' : 'neg'}">${l.tipo === 'receita' ? '+' : '−'} ${fmt(l.valor)}</b><br>
+        <button class="btn out sm" onclick="finBaixa(${l.id})">${l.status === 'pago' ? 'Reabrir' : 'Dar baixa'}</button>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="finExcluir(${l.id})">🗑</button></div></div>`).join('')}</div>`
+      : '<p class="mut" style="text-align:center;padding:1.5rem">Nenhum lançamento ainda.</p>';
+  }
+}
+
+async function finSalvar(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('fin_lancamentos').insert({ tipo: f.tipo.value, descr: f.descr.value.trim(), cat: f.cat.value, valor: parseFloat(f.valor.value), data: f.data.value, status: f.status.value });
+  if (error) { alert('Não foi possível salvar: ' + error.message); return; }
+  await finCarregar(); alert('✅ Lançamento salvo!');
+}
+async function finAddCat() {
+  const v = $('finNC').value.trim(); if (!v) return;
+  const { error } = await sb.from('fin_categorias').insert({ nome: v });
+  if (error) { alert('Não foi possível adicionar (talvez já exista).'); return; }
+  await finCarregar();
+}
+async function finBaixa(id) {
+  const l = finL.find(x => x.id === id); if (!l) return;
+  const { error } = await sb.from('fin_lancamentos').update({ status: l.status === 'pago' ? 'pendente' : 'pago' }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await finCarregar();
+}
+async function finExcluir(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  const { error } = await sb.from('fin_lancamentos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await finCarregar();
+}
+
+/* ===== MÓDULO ORDEM DE SERVIÇOS ===== */
+const OS_ST = { aberta:['Aberta','#3B82F6'], andamento:['Em andamento','#F59E0B'], aguardando:['Aguardando peça','#A78BFA'], concluida:['Concluída','#10B981'], entregue:['Entregue','#94A3B8'] };
+const OS_PR = { baixa:'Baixa', normal:'Normal', urgente:'🔥 Urgente' };
+let osC = [], osO = [], osTab = 'dash', osFiltro = '';
+const agoraBR = () => new Date().toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+const osQt = (...s) => osO.filter(o => s.includes(o.status)).length;
+
+async function osIniciar() {
+  osTab = 'dash';
+  $('conteudo').innerHTML = `<div class="osm"><h2 style="margin:.5rem 0 1rem">🛠️ LCORP Ordem de Serviços</h2>
+    <div class="tabs">${[['dash','📊 Dashboard'],['nova','➕ Nova OS'],['ordens','📋 Ordens'],['cli','👥 Clientes']].map(t => `<button data-t="${t[0]}" class="${t[0] === osTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="osBody"><p class="mut">Carregando...</p></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    osTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    osDesenhar();
+  });
+  await osCarregar();
+}
+
+async function osCarregar() {
+  const [a, b] = await Promise.all([
+    sb.from('os_clientes').select('*').order('nome'),
+    sb.from('os_ordens').select('*').order('num', { ascending: false })
+  ]);
+  if (a.error || b.error) { $('osBody').innerHTML = '<p class="msg">Não foi possível carregar os dados.</p>'; return; }
+  osC = a.data; osO = b.data; osDesenhar();
+}
+
+function osItem(o) {
+  const c = osC.find(x => x.id === o.cliente_id), st = OS_ST[o.status];
+  return `<div class="item" style="display:block">
+    <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+      <div><b>#${o.num} — ${esc(o.equip)}</b><br><span class="mut">👤 ${esc(c ? c.nome : 'Cliente removido')} • ${dBR(o.data)}${o.prev ? ' • prev. ' + dBR(o.prev) : ''}</span><br>
+      <span class="chip2" style="background:${st[1]}33;color:${st[1]}">${st[0]}</span><span class="chip2" style="background:rgba(255,255,255,.08)">${OS_PR[o.prior]}</span></div>
+      <b>${fmt(o.valor)}</b></div>
+    <p class="mut" style="margin:.5rem 0">${esc(o.defeito)}</p>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+      <select style="width:auto;padding:.4rem .6rem;font-size:.85rem" onchange="osStatus(${o.id}, this.value)">${Object.entries(OS_ST).map(([k, v]) => `<option value="${k}" ${k === o.status ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+      <button class="btn out sm" onclick="osZap(${o.id})">💬 WhatsApp</button>
+      <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="osExcluir(${o.id})">🗑</button></div>
+    <details><summary>Histórico (${(o.hist || []).length})</summary><ul style="margin:.3rem 0 0 1.1rem">${(o.hist || []).map(h => `<li>${esc(h.d)} — ${esc(h.t)}</li>`).join('')}</ul></details></div>`;
+}
+
+function osDesenhar() {
+  const b = $('osBody');
+  if (osTab === 'dash') {
+    const fat = osO.filter(o => ['concluida','entregue'].includes(o.status)).reduce((s, o) => s + Number(o.valor), 0);
+    const pend = osO.filter(o => !['concluida','entregue'].includes(o.status)).reduce((s, o) => s + Number(o.valor), 0);
+    const mx = Math.max(1, ...Object.keys(OS_ST).map(k => osQt(k)));
+    b.innerHTML = `<div class="kpis">
+      <div class="card kpi"><small>Abertas</small><b>${osQt('aberta')}</b></div>
+      <div class="card kpi"><small>Em andamento</small><b>${osQt('andamento','aguardando')}</b></div>
+      <div class="card kpi"><small>Concluídas</small><b class="pos">${osQt('concluida','entregue')}</b></div>
+      <div class="card kpi"><small>Faturado</small><b class="pos">${fmt(fat)}</b></div>
+      <div class="card kpi"><small>Em aberto (R$)</small><b>${fmt(pend)}</b></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Ordens por status</h3>${Object.entries(OS_ST).map(([k, v]) => `<div class="bar"><span style="width:110px" class="mut">${v[0]}</span><span class="t"><i style="width:${osQt(k) / mx * 100}%;background:${v[1]}"></i></span><span>${osQt(k)}</span></div>`).join('')}</div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Últimas ordens</h3>${osO.slice(0, 3).map(osItem).join('') || '<p class="mut">Nenhuma ordem ainda.</p>'}</div>`;
+  } else if (osTab === 'nova') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Abrir ordem de serviço</h3>
+      ${osC.length ? '' : '<p style="color:var(--warn)">Cadastre um cliente na aba 👥 Clientes antes de abrir uma OS.</p>'}
+      <form id="osForm"><label>Cliente</label><select name="cli" required>${osC.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select>
+      <div class="row2"><div><label>Equipamento / Serviço</label><input name="equip" required placeholder="Ex.: Notebook Dell"></div>
+      <div><label>Prioridade</label><select name="prior"><option value="normal">Normal</option><option value="baixa">Baixa</option><option value="urgente">Urgente</option></select></div></div>
+      <label>Defeito / Descrição</label><textarea name="defeito" rows="3" required placeholder="O que o cliente relatou?"></textarea>
+      <div class="row2"><div><label>Valor estimado (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" value="0"></div>
+      <div><label>Previsão de entrega</label><input name="prev" type="date"></div></div>
+      <button class="btn full" style="background:#F97316;color:#1F0B00" type="submit">✅ Abrir OS</button></form></div>`;
+    $('osForm').onsubmit = osSalvar;
+  } else if (osTab === 'ordens') {
+    const L = osFiltro ? osO.filter(o => o.status === osFiltro) : osO;
+    b.innerHTML = `<label>Filtrar status</label><select id="osFil" style="max-width:260px;margin-bottom:1rem"><option value="">Todas</option>${Object.entries(OS_ST).map(([k, v]) => `<option value="${k}" ${k === osFiltro ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+      <div class="card">${L.map(osItem).join('') || '<p class="mut" style="text-align:center">Nenhuma ordem encontrada.</p>'}</div>`;
+    $('osFil').onchange = e => { osFiltro = e.target.value; osDesenhar(); };
+  } else {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Cadastrar cliente</h3>
+      <form id="osFormCli"><div class="row2"><div><label>Nome</label><input name="nome" required></div><div><label>WhatsApp</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX"></div></div>
+      <label>Observações</label><input name="obs" placeholder="Endereço, preferências...">
+      <button class="btn full" style="background:#F97316;color:#1F0B00" type="submit">✅ Cadastrar cliente</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Clientes e histórico</h3>${osC.length ? osC.map(c => {
+        const m = osO.filter(o => o.cliente_id === c.id);
+        return `<div class="item" style="display:block"><div style="display:flex;justify-content:space-between;gap:.5rem"><div><b>${esc(c.nome)}</b><br><span class="mut">📱 ${esc(c.tel) || '—'} ${c.obs ? '• ' + esc(c.obs) : ''}<br>${m.length} OS • ${fmt(m.reduce((s, o) => s + Number(o.valor), 0))}</span></div>
+          <button class="btn out sm" style="color:var(--bad);border-color:var(--bad);align-self:flex-start" onclick="osExcluirCli(${c.id})">🗑</button></div>
+          <details><summary>Ver ordens</summary>${m.map(o => `<div style="margin:.4rem 0"><b>#${o.num}</b> ${esc(o.equip)} — ${OS_ST[o.status][0]} — ${fmt(o.valor)}</div>`).join('') || '<p>Sem ordens.</p>'}</details></div>`;
+      }).join('') : '<p class="mut">Nenhum cliente cadastrado.</p>'}</div>`;
+    $('osFormCli').onsubmit = osSalvarCli;
+  }
+}
+
+async function osSalvarCli(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('os_clientes').insert({ nome: f.nome.value.trim(), tel: f.tel.value.trim(), obs: f.obs.value.trim() });
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar(); alert('✅ Cliente cadastrado!');
+}
+async function osSalvar(e) {
+  e.preventDefault(); const f = e.target.elements;
+  if (!f.cli.value) { alert('Cadastre e selecione um cliente.'); return; }
+  const num = osO.reduce((m, o) => Math.max(m, o.num), 0) + 1;
+  const { error } = await sb.from('os_ordens').insert({ num, cliente_id: Number(f.cli.value), equip: f.equip.value.trim(), defeito: f.defeito.value.trim(), valor: parseFloat(f.valor.value) || 0, prior: f.prior.value, prev: f.prev.value || null, status: 'aberta', data: hoje(), hist: [{ d: agoraBR(), t: 'OS aberta' }] });
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar(); alert(`✅ OS #${num} aberta!`);
+}
+async function osStatus(id, st) {
+  const o = osO.find(x => x.id === id); if (!o) return;
+  const { error } = await sb.from('os_ordens').update({ status: st, hist: [...(o.hist || []), { d: agoraBR(), t: 'Status: ' + OS_ST[st][0] }] }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar();
+}
+async function osExcluir(id) {
+  if (!confirm('Excluir esta OS?')) return;
+  const { error } = await sb.from('os_ordens').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar();
+}
+async function osExcluirCli(id) {
+  if (osO.some(o => o.cliente_id === id)) { alert('Este cliente possui ordens no histórico. Exclua as OS antes.'); return; }
+  if (!confirm('Excluir cliente?')) return;
+  const { error } = await sb.from('os_clientes').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await osCarregar();
+}
+function osZap(id) {
+  const o = osO.find(x => x.id === id); if (!o) return;
+  const c = osC.find(x => x.id === o.cliente_id);
+  if (!c || !c.tel) { alert('Cliente sem WhatsApp cadastrado.'); return; }
+  let n = c.tel.replace(/\D/g, ''); if (n.length <= 11) n = '55' + n;
+  window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(`Olá ${c.nome}! Sua OS #${o.num} (${o.equip}) está: ${OS_ST[o.status][0]}. Valor: ${fmt(o.valor)}.`), '_blank');
+}
+
+/* ===== MÓDULO AGENDA (Barber e Beauty) ===== */
+const AG = {
+  barber: { ac:'#8B4513', ic:'💈', nome:'LCORP Barber', horas:['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'],
+    padrao:[['Corte',35],['Corte + Barba',50],['Barba',25],['Completo',70]] },
+  beauty: { ac:'#EC4899', ic:'✨', nome:'LCORP Beauty', horas:['09:00','10:00','11:00','14:00','15:00','16:00'],
+    padrao:[['Limpeza de Pele',80],['Massagem Relaxante',100],['Design de Sobrancelhas',45],['Pacote Estética Completo',200]] }
+};
+let agS = 'barber', agSv = [], agA = [], agTab = 'dash';
+const ST_AG = { agendado:['Agendado','#3B82F6'], concluido:['Concluído','#10B981'], cancelado:['Cancelado','#94A3B8'] };
+
+async function agIniciar(sis) {
+  agS = sis; agTab = 'dash'; const g = AG[sis];
+  $('conteudo').innerHTML = `<div class="agm" style="--ac:${g.ac}"><h2 style="margin:.5rem 0 1rem">${g.ic} ${g.nome}</h2>
+    <div class="tabs">${[['dash','📊 Início'],['novo','➕ Agendar'],['agenda','📅 Agenda'],['serv','✂️ Serviços']].map(t => `<button data-t="${t[0]}" class="${t[0] === agTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="agBody"><p class="mut">Carregando...</p></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    agTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    agDesenhar();
+  });
+  await agCarregar();
+}
+
+async function agCarregar() {
+  const [a, b] = await Promise.all([
+    sb.from('servicos').select('*').order('nome'),
+    sb.from('agendamentos').select('*').order('data').order('hora')
+  ]);
+  if (a.error || b.error) { $('agBody').innerHTML = '<p class="msg">Não foi possível carregar os dados. Confira se o script da agenda foi executado no Supabase.</p>'; return; }
+  agSv = a.data; agA = b.data; agDesenhar();
+}
+
+function agItem(a) {
+  const st = ST_AG[a.status];
+  return `<div class="item" style="display:block">
+    <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+      <div><b>${dBR(a.data)} • ${esc(a.hora)} — ${esc(a.cliente)}</b><br><span class="mut">${esc(a.servico)} • ${fmt(a.valor)}${a.tel ? ' • 📱 ' + esc(a.tel) : ''}</span><br>
+      <span class="chip2" style="background:${st[1]}33;color:${st[1]}">${st[0]}</span></div></div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-top:.5rem">
+      <select style="width:auto;padding:.4rem .6rem;font-size:.85rem" onchange="agStatus(${a.id}, this.value)">${Object.entries(ST_AG).map(([k, v]) => `<option value="${k}" ${k === a.status ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+      <button class="btn out sm" onclick="agZap(${a.id})">💬 WhatsApp</button>
+      <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="agExcluir(${a.id})">🗑</button></div></div>`;
+}
+
+function agHoras() {
+  const d = $('agD') ? $('agD').value : '', ocupadas = agA.filter(a => a.data === d && a.status !== 'cancelado').map(a => a.hora);
+  const livres = AG[agS].horas.filter(h => !ocupadas.includes(h));
+  if ($('agH')) $('agH').innerHTML = livres.length ? livres.map(h => `<option>${h}</option>`).join('') : '<option value="">Sem horários livres</option>';
+}
+
+function agDesenhar() {
+  const b = $('agBody'), h = hoje(), mes = h.slice(0, 7);
+  if (agTab === 'dash') {
+    const doDia = agA.filter(a => a.data === h && a.status !== 'cancelado');
+    const prev = doDia.filter(a => a.status === 'agendado').reduce((s, a) => s + Number(a.valor), 0);
+    const fat = agA.filter(a => a.status === 'concluido' && a.data.startsWith(mes)).reduce((s, a) => s + Number(a.valor), 0);
+    const prox = agA.filter(a => a.status === 'agendado' && a.data >= h).slice(0, 5);
+    b.innerHTML = `<div class="kpis">
+      <div class="card kpi"><small>Hoje</small><b>${doDia.length}</b></div>
+      <div class="card kpi"><small>Previsto hoje</small><b>${fmt(prev)}</b></div>
+      <div class="card kpi"><small>Faturado no mês</small><b class="pos">${fmt(fat)}</b></div>
+      <div class="card kpi"><small>Próximos</small><b>${agA.filter(a => a.status === 'agendado' && a.data >= h).length}</b></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Próximos horários</h3>${prox.map(agItem).join('') || '<p class="mut">Nenhum horário agendado.</p>'}</div>`;
+  } else if (agTab === 'novo') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Novo agendamento</h3>
+      ${agSv.length ? '' : '<p style="color:var(--warn)">Cadastre seus serviços na aba ✂️ Serviços antes de agendar.</p>'}
+      <form id="agForm"><div class="row2"><div><label>Cliente</label><input name="cliente" required></div><div><label>WhatsApp</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX"></div></div>
+      <label>Serviço</label><select name="serv" required>${agSv.map(s => `<option value="${s.id}">${esc(s.nome)} — ${fmt(s.valor)}</option>`).join('')}</select>
+      <div class="row2"><div><label>Data</label><input name="data" id="agD" type="date" required min="${h}" value="${h}"></div><div><label>Horário</label><select name="hora" id="agH" required></select></div></div>
+      <button class="btn full" style="background:var(--ac);color:#fff" type="submit">✅ Confirmar</button></form></div>`;
+    agHoras(); $('agD').onchange = agHoras; $('agForm').onsubmit = agSalvar;
+  } else if (agTab === 'agenda') {
+    const dia = window.agDia || h;
+    const L = agA.filter(a => a.data === dia);
+    b.innerHTML = `<label>Dia</label><input type="date" id="agDia" value="${dia}" style="max-width:220px;margin-bottom:1rem">
+      <div class="card">${L.map(agItem).join('') || '<p class="mut" style="text-align:center">Nenhum agendamento neste dia.</p>'}</div>`;
+    $('agDia').onchange = e => { window.agDia = e.target.value || h; agDesenhar(); };
+  } else {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Cadastrar serviço</h3>
+      <form id="agFormSv"><div class="row2"><div><label>Nome</label><input name="nome" required></div><div><label>Valor (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" required></div></div>
+      <button class="btn full" style="background:var(--ac);color:#fff" type="submit">✅ Adicionar</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Meus serviços</h3>${agSv.length ? agSv.map(s => `<div class="item"><div><b>${esc(s.nome)}</b><br><span class="mut">${fmt(s.valor)}</span></div>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="agExcluirSv(${s.id})">🗑</button></div>`).join('') : `<p class="mut">Nenhum serviço ainda.</p><button class="btn out" style="margin-top:.75rem" id="agPadrao">➕ Adicionar serviços padrão</button>`}</div>`;
+    $('agFormSv').onsubmit = agSalvarSv;
+    if ($('agPadrao')) $('agPadrao').onclick = async () => {
+      const { error } = await sb.from('servicos').insert(AG[agS].padrao.map(p => ({ nome: p[0], valor: p[1] })));
+      if (error) { alert('Erro: ' + error.message); return; } await agCarregar();
+    };
+  }
+}
+
+async function agSalvarSv(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('servicos').insert({ nome: f.nome.value.trim(), valor: parseFloat(f.valor.value) || 0 });
+  if (error) { alert('Não foi possível adicionar (talvez já exista).'); return; }
+  await agCarregar();
+}
+async function agExcluirSv(id) {
+  if (!confirm('Excluir este serviço?')) return;
+  const { error } = await sb.from('servicos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await agCarregar();
+}
+async function agSalvar(e) {
+  e.preventDefault(); const f = e.target.elements, s = agSv.find(x => x.id === Number(f.serv.value));
+  if (!s || !f.hora.value) { alert('Escolha o serviço e um horário livre.'); return; }
+  const { error } = await sb.from('agendamentos').insert({ cliente: f.cliente.value.trim(), tel: f.tel.value.trim(), servico: s.nome, valor: s.valor, data: f.data.value, hora: f.hora.value });
+  if (error) { alert(error.code === '23505' ? 'Esse horário já está ocupado.' : 'Erro: ' + error.message); return; }
+  await agCarregar(); alert('✅ Agendamento confirmado!');
+}
+async function agStatus(id, st) {
+  const { error } = await sb.from('agendamentos').update({ status: st }).eq('id', id);
+  if (error) { alert(error.code === '23505' ? 'Já existe outro cliente neste horário.' : 'Erro: ' + error.message); }
+  await agCarregar();
+}
+async function agExcluir(id) {
+  if (!confirm('Excluir este agendamento?')) return;
+  const { error } = await sb.from('agendamentos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await agCarregar();
+}
+function agZap(id) {
+  const a = agA.find(x => x.id === id); if (!a || !a.tel) { alert('Cliente sem WhatsApp cadastrado.'); return; }
+  let n = a.tel.replace(/\D/g, ''); if (n.length <= 11) n = '55' + n;
+  window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(`Olá ${a.cliente}! Confirmando seu horário: ${a.servico} em ${dBR(a.data)} às ${a.hora}.`), '_blank');
+}
+
+/* ===== MÓDULO DESENVOLVE ===== */
+let dvM = [], dvH = [], dvK = [], dvTab = 'metas';
+const diaISO = i => new Date(Date.now() - new Date().getTimezoneOffset() * 60000 - i * 864e5).toISOString().slice(0, 10);
+
+async function dvIniciar() {
+  dvTab = 'metas';
+  $('conteudo').innerHTML = `<div class="dvm"><h2 style="margin:.5rem 0 1rem">🧠 LCORP Desenvolve</h2>
+    <div class="tabs">${[['metas','🎯 Metas'],['rotina','📅 Rotina'],['prog','📊 Progresso']].map(t => `<button data-t="${t[0]}" class="${t[0] === dvTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="dvBody"><p class="mut">Carregando...</p></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    dvTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    dvDesenhar();
+  });
+  await dvCarregar();
+}
+
+async function dvCarregar() {
+  const [a, b, c] = await Promise.all([
+    sb.from('metas').select('*').order('concluida').order('prazo', { nullsFirst: false }),
+    sb.from('habitos').select('*').order('id'),
+    sb.from('habito_marcas').select('habito_id,data').gte('data', diaISO(60))
+  ]);
+  if (a.error || b.error || c.error) { $('dvBody').innerHTML = '<p class="msg">Não foi possível carregar. Confira se o script do Desenvolve foi executado no Supabase.</p>'; return; }
+  dvM = a.data; dvH = b.data; dvK = c.data; dvDesenhar();
+}
+
+const dvFeitos = d => dvK.filter(k => k.data === d).length;
+
+function dvDesenhar() {
+  const b = $('dvBody'), h = diaISO(0);
+  if (dvTab === 'metas') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Nova meta</h3>
+      <form id="dvFormM"><label>Meta</label><input name="titulo" required placeholder="Ex.: Ler 1 livro no mês">
+      <label>Prazo (opcional)</label><input name="prazo" type="date">
+      <button class="btn full" style="background:#8B5CF6" type="submit">✅ Adicionar meta</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Minhas metas</h3>${dvM.length ? dvM.map(m => `<div class="item" style="align-items:center">
+        <div class="${m.concluida ? 'feito' : ''}"><b>${esc(m.titulo)}</b>${m.prazo ? `<br><span class="mut">Prazo: ${dBR(m.prazo)}</span>` : ''}</div>
+        <div style="display:flex;gap:.4rem"><button class="chk ${m.concluida ? 'on' : ''}" onclick="dvMeta(${m.id}, ${!m.concluida})">✓</button>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="dvExcluirMeta(${m.id})">🗑</button></div></div>`).join('') : '<p class="mut">Nenhuma meta ainda.</p>'}</div>`;
+    $('dvFormM').onsubmit = dvSalvarMeta;
+  } else if (dvTab === 'rotina') {
+    const feitosHoje = dvK.filter(k => k.data === h).map(k => k.habito_id);
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Hoje — ${dBR(h)}</h3>${dvH.length ? dvH.map(x => `<div class="item" style="align-items:center">
+        <div class="${feitosHoje.includes(x.id) ? 'feito' : ''}"><b>${esc(x.nome)}</b></div>
+        <div style="display:flex;gap:.4rem"><button class="chk ${feitosHoje.includes(x.id) ? 'on' : ''}" onclick="dvMarcar(${x.id})">✓</button>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="dvExcluirHab(${x.id})">🗑</button></div></div>`).join('') : '<p class="mut">Nenhum hábito ainda. Adicione abaixo.</p>'}</div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Novo hábito</h3><form id="dvFormH" style="display:flex;gap:.5rem"><input name="nome" required placeholder="Ex.: Beber 2L de água"><button class="btn" style="background:#8B5CF6" type="submit">Adicionar</button></form></div>`;
+    $('dvFormH').onsubmit = dvSalvarHab;
+  } else {
+    const tot = dvM.length, ok = dvM.filter(m => m.concluida).length, pct = tot ? Math.round(ok / tot * 100) : 0;
+    const n = dvH.length, hoje2 = dvFeitos(h);
+    let seq = 0; for (let i = dvFeitos(h) >= n && n ? 0 : 1; i < 60 && n && dvFeitos(diaISO(i)) >= n; i++) seq++;
+    const dias = [6, 5, 4, 3, 2, 1, 0].map(i => { const d = diaISO(i); return { d, v: n ? Math.min(100, Math.round(dvFeitos(d) / n * 100)) : 0 }; });
+    b.innerHTML = `<div class="kpis">
+      <div class="card kpi"><small>Metas concluídas</small><b>${ok}/${tot}</b></div>
+      <div class="card kpi"><small>Hábitos hoje</small><b>${hoje2}/${n}</b></div>
+      <div class="card kpi"><small>Sequência</small><b class="pos">${seq} dia${seq === 1 ? '' : 's'}</b></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Metas: ${pct}%</h3><div class="bar"><span class="t"><i style="width:${pct}%;background:#8B5CF6"></i></span></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Hábitos nos últimos 7 dias</h3>${dias.map(x => `<div class="bar"><span style="width:60px" class="mut">${x.d.slice(8)}/${x.d.slice(5, 7)}</span><span class="t"><i style="width:${x.v}%;background:#8B5CF6"></i></span><span style="width:45px;text-align:right">${x.v}%</span></div>`).join('')}</div>`;
+  }
+}
+
+async function dvSalvarMeta(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('metas').insert({ titulo: f.titulo.value.trim(), prazo: f.prazo.value || null });
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvMeta(id, v) {
+  const { error } = await sb.from('metas').update({ concluida: v }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvExcluirMeta(id) {
+  if (!confirm('Excluir esta meta?')) return;
+  const { error } = await sb.from('metas').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvSalvarHab(e) {
+  e.preventDefault();
+  const { error } = await sb.from('habitos').insert({ nome: e.target.elements.nome.value.trim() });
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvMarcar(id) {
+  const h = diaISO(0), ja = dvK.some(k => k.habito_id === id && k.data === h);
+  const { error } = ja ? await sb.from('habito_marcas').delete().eq('habito_id', id).eq('data', h) : await sb.from('habito_marcas').insert({ habito_id: id, data: h });
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+async function dvExcluirHab(id) {
+  if (!confirm('Excluir este hábito e o histórico dele?')) return;
+  const { error } = await sb.from('habitos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await dvCarregar();
+}
+/* ===== MÓDULO COMÉRCIO ===== */
+let cmP = [], cmC = [], cmV = [], cmI = [], cmTab = 'dash', cmCar = {};
+const CM_PG = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro', fiado: 'Fiado' };
+const cmS = a => a.reduce((s, v) => s + Number(v.total), 0);
+
+async function cmIniciar() {
+  cmTab = 'dash'; cmCar = {};
+  $('conteudo').innerHTML = `<div class="cmm"><h2 style="margin:.5rem 0 1rem">🛍️ LCORP Comércio</h2>
+    <div class="tabs">${[['dash','📊 Início'],['vender','🛒 Vender'],['prod','📦 Produtos'],['cli','👥 Clientes'],['hist','🧾 Vendas']].map(t => `<button data-t="${t[0]}" class="${t[0] === cmTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="cmBody"><p class="mut">Carregando...</p></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    cmTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    cmDesenhar();
+  });
+  await cmCarregar();
+}
+
+async function cmCarregar() {
+  const r = await Promise.all([
+    sb.from('produtos').select('*').order('nome'),
+    sb.from('loja_clientes').select('*').order('nome'),
+    sb.from('vendas').select('*').order('id', { ascending: false }).limit(300),
+    sb.from('venda_itens').select('venda_id,produto_id,nome,qtd,preco,custo').order('id', { ascending: false }).limit(1500)
+  ]);
+  if (r.some(x => x.error)) { $('cmBody').innerHTML = '<p class="msg">Não foi possível carregar. Confira se o script do Comércio foi executado no Supabase.</p>'; return; }
+  [cmP, cmC, cmV, cmI] = r.map(x => x.data); cmDesenhar();
+}
+
+function cmDesenhar() {
+  const b = $('cmBody'), h = hoje(), mes = h.slice(0, 7);
+  if (cmTab === 'dash') {
+    const vMes = cmV.filter(v => v.data.startsWith(mes)), ids = new Set(vMes.map(v => v.id));
+    const custo = cmI.filter(i => ids.has(i.venda_id)).reduce((s, i) => s + Number(i.custo) * i.qtd, 0);
+    const fiado = cmV.filter(v => v.status === 'pendente'), baixo = cmP.filter(p => p.ativo && p.qtd <= p.minimo);
+    const top = {}; cmI.forEach(i => top[i.nome] = (top[i.nome] || 0) + i.qtd);
+    const tp = Object.entries(top).sort((a, c) => c[1] - a[1]).slice(0, 5);
+    b.innerHTML = `<div class="kpis">
+      <div class="card kpi"><small>Vendas hoje</small><b>${fmt(cmS(cmV.filter(v => v.data === h)))}</b></div>
+      <div class="card kpi"><small>Vendas no mês</small><b class="pos">${fmt(cmS(vMes))}</b></div>
+      <div class="card kpi"><small>Lucro estimado (mês)</small><b class="pos">${fmt(cmS(vMes) - custo)}</b></div>
+      <div class="card kpi"><small>Fiado a receber</small><b style="color:var(--warn)">${fmt(cmS(fiado))}</b></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">⚠️ Estoque baixo (${baixo.length})</h3>${baixo.slice(0, 6).map(p => `<div class="item"><b>${esc(p.nome)}</b><span class="${p.qtd === 0 ? 'neg' : ''}">${p.qtd} un (mín. ${p.minimo})</span></div>`).join('') || '<p class="mut">Tudo em ordem.</p>'}</div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Mais vendidos</h3>${tp.map(([n, q]) => `<div class="item"><b>${esc(n)}</b><span>${q} un</span></div>`).join('') || '<p class="mut">Nenhuma venda ainda.</p>'}</div>`;
+  } else if (cmTab === 'vender') {
+    b.innerHTML = `<div class="card"><input id="cmBusca" placeholder="🔍 Buscar produto"><div id="cmLista" style="margin-top:.5rem"></div></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">🛒 Carrinho</h3><div id="cmLinhas"></div>
+      <label>Cliente (opcional)</label><select id="cmCli"><option value="">Sem cliente</option>${cmC.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select>
+      <div class="row2"><div><label>Pagamento</label><select id="cmPg">${Object.entries(CM_PG).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div><label>Desconto (R$)</label><input id="cmDesc" type="number" min="0" step="0.01" inputmode="decimal" value="0"></div></div>
+      <p style="margin:1rem 0;font-size:1.2rem">Total: <b id="cmTotal"></b></p>
+      <button class="btn full" id="cmFin" style="background:#0EA5E9;color:#04202D">✅ Finalizar venda</button></div>`;
+    $('cmBusca').oninput = cmLista; $('cmDesc').oninput = cmLista; $('cmFin').onclick = cmVender; cmLista();
+  } else if (cmTab === 'prod') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Novo produto</h3><form id="cmFormP">
+      <div class="row2"><div><label>Nome</label><input name="nome" required placeholder="Ex.: Camiseta P azul"></div><div><label>Categoria</label><input name="cat" placeholder="Ex.: Camisetas"></div></div>
+      <div class="row2"><div><label>Custo (R$)</label><input name="custo" type="number" step="0.01" min="0" inputmode="decimal" value="0"></div><div><label>Preço de venda (R$)</label><input name="preco" type="number" step="0.01" min="0" inputmode="decimal" required></div></div>
+      <div class="row2"><div><label>Quantidade inicial</label><input name="qtd" type="number" min="0" inputmode="numeric" value="0"></div><div><label>Estoque mínimo</label><input name="min" type="number" min="0" inputmode="numeric" value="0"></div></div>
+      <button class="btn full" style="background:#0EA5E9;color:#04202D" type="submit">✅ Cadastrar produto</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Produtos (${cmP.length})</h3>${cmP.map(p => `<div class="item"><div><b>${esc(p.nome)}</b><br><span class="mut">${esc(p.categoria || '—')} • custo ${fmt(p.custo)} • venda ${fmt(p.preco)}</span><br>
+        <span class="chip ${p.qtd <= p.minimo ? 'off' : 'on'}">${p.qtd} em estoque</span></div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:flex-start"><button class="btn out sm" onclick="cmEntrada(${p.id})">＋ Estoque</button><button class="btn out sm" onclick="cmPreco(${p.id})">Preço</button>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="cmExcluirP(${p.id})">🗑</button></div></div>`).join('') || '<p class="mut">Nenhum produto ainda.</p>'}</div>`;
+    $('cmFormP').onsubmit = cmSalvarP;
+  } else if (cmTab === 'cli') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Novo cliente</h3><form id="cmFormC">
+      <div class="row2"><div><label>Nome</label><input name="nome" required></div><div><label>WhatsApp</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX"></div></div>
+      <label>Observações</label><input name="obs" placeholder="Tamanho, preferências..."><button class="btn full" style="background:#0EA5E9;color:#04202D" type="submit">✅ Cadastrar cliente</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Clientes (${cmC.length})</h3>${cmC.map(c => { const m = cmV.filter(v => v.cliente_id === c.id);
+        return `<div class="item"><div><b>${esc(c.nome)}</b><br><span class="mut">📱 ${esc(c.tel) || '—'}${c.obs ? ' • ' + esc(c.obs) : ''}<br>${m.length} compra(s) • ${fmt(cmS(m))}</span></div>
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad);align-self:flex-start" onclick="cmExcluirC(${c.id})">🗑</button></div>`; }).join('') || '<p class="mut">Nenhum cliente ainda.</p>'}</div>`;
+    $('cmFormC').onsubmit = cmSalvarC;
+  } else {
+    b.innerHTML = `<div class="card">${cmV.map(v => { const c = cmC.find(x => x.id === v.cliente_id), it = cmI.filter(i => i.venda_id === v.id);
+      return `<div class="item" style="display:block"><div style="display:flex;justify-content:space-between;gap:.5rem"><div><b>#${v.id} — ${dBR(v.data)}</b><br><span class="mut">${esc(c ? c.nome : 'Sem cliente')} • ${CM_PG[v.pagamento]}</span><br>
+        <span class="chip ${v.status === 'pago' ? 'on' : 'off'}">${v.status === 'pago' ? 'PAGO' : 'A RECEBER'}</span></div><b>${fmt(v.total)}</b></div>
+        ${v.status === 'pendente' ? `<button class="btn out sm" style="margin-top:.5rem" onclick="cmReceber(${v.id})">💰 Marcar como recebido</button>` : ''}
+        <details><summary>Itens (${it.length})</summary>${it.map(i => `<div>${esc(i.nome)} × ${i.qtd} — ${fmt(i.preco * i.qtd)}</div>`).join('')}</details></div>`; }).join('') || '<p class="mut" style="text-align:center">Nenhuma venda ainda.</p>'}</div>`;
+  }
+}
+
+function cmLista() {
+  const q = ($('cmBusca').value || '').toLowerCase();
+  const L = cmP.filter(p => p.ativo && p.qtd > 0 && (p.nome + ' ' + (p.categoria || '')).toLowerCase().includes(q)).slice(0, 30);
+  $('cmLista').innerHTML = L.map(p => `<div class="item" style="align-items:center"><div><b>${esc(p.nome)}</b><br><span class="mut">${fmt(p.preco)} • estoque ${p.qtd}</span></div>
+    <div style="display:flex;gap:.4rem;align-items:center"><button class="chk" onclick="cmAdd(${p.id},-1)">−</button><b>${cmCar[p.id] || 0}</b><button class="chk on" onclick="cmAdd(${p.id},1)">+</button></div></div>`).join('') || '<p class="mut">Nenhum produto disponível.</p>';
+  const itens = cmP.filter(p => cmCar[p.id] > 0), sub = itens.reduce((s, p) => s + p.preco * cmCar[p.id], 0), desc = parseFloat($('cmDesc').value) || 0;
+  $('cmLinhas').innerHTML = itens.map(p => `<div class="item"><span>${esc(p.nome)} × ${cmCar[p.id]}</span><b>${fmt(p.preco * cmCar[p.id])}</b></div>`).join('') || '<p class="mut">Carrinho vazio.</p>';
+  $('cmTotal').textContent = fmt(Math.max(0, sub - desc));
+}
+function cmAdd(id, d) {
+  const p = cmP.find(x => x.id === id); if (!p) return;
+  cmCar[id] = Math.max(0, Math.min(p.qtd, (cmCar[id] || 0) + d)); cmLista();
+}
+async function cmVender() {
+  const itens = Object.entries(cmCar).filter(([, q]) => q > 0).map(([id, q]) => ({ produto_id: Number(id), qtd: q }));
+  if (!itens.length) { alert('Adicione produtos ao carrinho.'); return; }
+  const { error } = await sb.rpc('registrar_venda', { p_cliente: $('cmCli').value ? Number($('cmCli').value) : null, p_pagamento: $('cmPg').value, p_desconto: parseFloat($('cmDesc').value) || 0, p_data: hoje(), p_itens: itens });
+  if (error) { alert('Não foi possível vender: ' + error.message); return; }
+  cmCar = {}; await cmCarregar(); alert('✅ Venda registrada!');
+}
+async function cmSalvarP(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('produtos').insert({ nome: f.nome.value.trim(), categoria: f.cat.value.trim() || null, custo: parseFloat(f.custo.value) || 0, preco: parseFloat(f.preco.value) || 0, qtd: parseInt(f.qtd.value) || 0, minimo: parseInt(f.min.value) || 0 });
+  if (error) { alert('Não foi possível cadastrar (talvez o nome já exista).'); return; } await cmCarregar();
+}
+async function cmEntrada(id) {
+  const n = parseInt(prompt('Quantas unidades entraram? (use número negativo para ajuste)'));
+  if (!n) return;
+  const { error } = await sb.rpc('entrada_estoque', { p_produto: id, p_qtd: n, p_motivo: n > 0 ? 'Entrada' : 'Ajuste' });
+  if (error) { alert('Erro: ' + error.message); return; } await cmCarregar();
+}
+async function cmPreco(id) {
+  const v = parseFloat(String(prompt('Novo preço de venda (R$):') || '').replace(',', '.'));
+  if (isNaN(v) || v < 0) return;
+  const { error } = await sb.from('produtos').update({ preco: v }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await cmCarregar();
+}
+async function cmExcluirP(id) {
+  if (!confirm('Excluir este produto? As vendas antigas continuam no histórico.')) return;
+  const { error } = await sb.from('produtos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await cmCarregar();
+}
+async function cmSalvarC(e) {
+  e.preventDefault(); const f = e.target.elements;
+  const { error } = await sb.from('loja_clientes').insert({ nome: f.nome.value.trim(), tel: f.tel.value.trim(), obs: f.obs.value.trim() });
+  if (error) { alert('Erro: ' + error.message); return; } await cmCarregar();
+}
+async function cmExcluirC(id) {
+  if (!confirm('Excluir este cliente? As vendas dele continuam no histórico.')) return;
+  const { error } = await sb.from('loja_clientes').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await cmCarregar();
+}
+async function cmReceber(id) {
+  const { error } = await sb.from('vendas').update({ status: 'pago' }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } await cmCarregar();
+}
+
+/* ===== PWA ===== */
+let pwaEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); pwaEvt = e; $('btnInstalar').classList.remove('hidden'); });
+$('btnInstalar').onclick = async () => { if (!pwaEvt) return; pwaEvt.prompt(); await pwaEvt.userChoice; pwaEvt = null; $('btnInstalar').classList.add('hidden'); };
+window.addEventListener('appinstalled', () => $('btnInstalar').classList.add('hidden'));
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+iniciar();
+</script>
+</body>
+</html>
