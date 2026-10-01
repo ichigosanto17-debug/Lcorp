@@ -1,6 +1,6 @@
 // Service worker do LCORP: tenta sempre a rede primeiro (dados sempre atuais)
 // e usa o cache só se estiver sem internet. Não guarda nada do Supabase.
-const C = 'lcorp-v1';
+const C = 'lcorp-v2';
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(caches.open(C).then(c => c.addAll(['./', 'manifest.json', 'icon-192.png'])));
