@@ -60,14 +60,21 @@ details{margin-top:.5rem;font-size:.85rem;color:var(--mut)}details summary{curso
 .cmm details summary{color:#0EA5E9}
 body.marca .tabs button.act{background:var(--marca)!important;border-color:var(--marca)!important;color:#fff!important}
 body.marca .agm{--ac:var(--marca)!important}
+.spin{width:28px;height:28px;border:3px solid var(--bd);border-top-color:var(--pri);border-radius:50%;animation:giro .8s linear infinite;margin:1.5rem auto}
+@keyframes giro{to{transform:rotate(360deg)}}
+#toasts{position:fixed;left:0;right:0;bottom:calc(1rem + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:.5rem;z-index:9999;pointer-events:none}
+.toast{pointer-events:auto;max-width:92%;white-space:pre-line;background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--pri);padding:.8rem 1rem;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:ent .2s ease;cursor:pointer}
+.toast.ok{border-left-color:var(--ok)}.toast.bad{border-left-color:var(--bad)}.toast.sai{opacity:0;transition:opacity .25s}
+@keyframes ent{from{opacity:0;transform:translateY(8px)}}
 </style>
 </head>
 <body>
 
 <div id="telaLogin" class="center">
   <form id="formLogin" class="card login">
-    <h1>LCORP<span>.</span></h1>
-    <p class="mut">Acesse seu espaço</p>
+    <div style="text-align:center;margin-bottom:.75rem"><img src="icon-192.png" alt="LCORP" style="width:84px;height:84px;border-radius:20px"></div>
+    <h1 style="text-align:center">LCORP<span>.</span></h1>
+    <p class="mut" style="text-align:center">Acesse seu espaço</p>
     <label for="email">E-mail</label>
     <input id="email" type="email" autocomplete="username" required>
     <label for="senha">Senha</label>
@@ -96,6 +103,18 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 const fmt = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const dBR = iso => iso ? iso.split('-').reverse().join('/') : 'sem vencimento';
 const NOMES = {barber:'💈 Barber', beauty:'✨ Beauty', desenvolve:'🧠 Desenvolve', finance:'💹 Finance', os:'🛠️ Ordem de Serviços', comercio:'🛍️ Comércio'};
+
+function toast(m) {
+  m = String(m); let t = 'info';
+  if (m.startsWith('✅')) t = 'ok';
+  else if (/erro|não foi possível|inválid|não encontrad|cadastre|ocupado|insuficiente|sem whatsapp|incorret/i.test(m)) t = 'bad';
+  let box = $('toasts'); if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }
+  const el = document.createElement('div'); el.className = 'toast ' + t; el.textContent = m; box.appendChild(el);
+  const fechar = () => { el.classList.add('sai'); setTimeout(() => el.remove(), 250); };
+  el.onclick = fechar;
+  if (m.length <= 160) setTimeout(fechar, Math.min(12000, 3500 + m.length * 40)); // textos longos (ex.: dados de acesso) ficam até tocar
+}
+window.alert = toast;
 
 function aplicarMarca(p) {
   const ok = p.role === 'client' && ativo(p);
@@ -252,7 +271,8 @@ async function painelAdmin() {
       <div class="card kpi"><small>Vencidos / bloqueados</small><b style="color:var(--bad)">${admLista.length - ativos}</b></div>
       <div class="card kpi"><small>Vencem em 7 dias</small><b style="color:var(--warn)">${admLista.filter(c => { const d = diasPara(c.vencimento); return d !== null && d >= 0 && d <= 7; }).length}</b></div>
     </div>
-    <div class="card"><h3 style="margin-bottom:.5rem">➕ Novo cliente</h3>
+    <button class="btn full" id="btnNovo" style="margin:0 0 1rem">➕ Novo cliente</button>
+    <div class="card hidden" id="cardNovo"><h3 style="margin-bottom:.5rem">➕ Novo cliente</h3>
       <form id="formCli">
         <label>Nome / Empresa</label><input name="nome" required>
         <div class="row2"><div><label>WhatsApp</label><input name="whats" type="tel" placeholder="(87) 9XXXX-XXXX"></div>
@@ -276,12 +296,13 @@ async function painelAdmin() {
             <button class="btn out sm" onclick="admCor('${c.id}')">🎨 Cor</button>
             <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="admExcluir('${c.id}')">🗑</button>
           </div>
-        </div>`).join('') : '<p class="mut">Nenhum cliente ainda.</p>'}
+        </div>`).join('') : '<p class="mut">Nenhum cliente ainda. Toque em ➕ Novo cliente para cadastrar o primeiro.</p>'}
     </div>
     <div class="card"><h3 style="margin-bottom:.5rem">💾 Backup</h3>
       <p class="mut" style="margin-bottom:.75rem">Baixa uma cópia de todos os dados do sistema (clientes e módulos) em um arquivo. Leva alguns segundos.</p>
       <button class="btn out" id="btnBackup" onclick="admBackup()">Exportar backup (JSON)</button></div>`;
   admPlanos();
+  $('btnNovo').onclick = () => { $('cardNovo').classList.toggle('hidden'); if (!$('cardNovo').classList.contains('hidden')) $('cardNovo').scrollIntoView({ behavior: 'smooth' }); };
   $('cSis').onchange = admPlanos;
   $('formCli').onsubmit = async e => {
     e.preventDefault();
@@ -324,7 +345,7 @@ async function finIniciar() {
   finTab = 'dash';
   $('conteudo').innerHTML = `<h2 style="margin:.5rem 0 1rem">💹 LCORP Finance</h2>
     <div class="tabs">${[['dash','📊 Dashboard'],['lanc','➕ Lançar'],['hist','🧾 Histórico']].map(t => `<button data-t="${t[0]}" class="${t[0] === finTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
-    <div id="finBody"><p class="mut">Carregando...</p></div>`;
+    <div id="finBody"><div class="spin"></div></div>`;
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     finTab = b.dataset.t;
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
@@ -416,7 +437,7 @@ async function osIniciar() {
   osTab = 'dash';
   $('conteudo').innerHTML = `<div class="osm"><h2 style="margin:.5rem 0 1rem">🛠️ LCORP Ordem de Serviços</h2>
     <div class="tabs">${[['dash','📊 Dashboard'],['nova','➕ Nova OS'],['ordens','📋 Ordens'],['cli','👥 Clientes']].map(t => `<button data-t="${t[0]}" class="${t[0] === osTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
-    <div id="osBody"><p class="mut">Carregando...</p></div></div>`;
+    <div id="osBody"><div class="spin"></div></div></div>`;
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     osTab = b.dataset.t;
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
@@ -549,7 +570,7 @@ async function agIniciar(sis) {
   agS = sis; agTab = 'dash'; const g = AG[sis];
   $('conteudo').innerHTML = `<div class="agm" style="--ac:${g.ac}"><h2 style="margin:.5rem 0 1rem">${g.ic} ${g.nome}</h2>
     <div class="tabs">${[['dash','📊 Início'],['novo','➕ Agendar'],['agenda','📅 Agenda'],['serv','✂️ Serviços']].map(t => `<button data-t="${t[0]}" class="${t[0] === agTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
-    <div id="agBody"><p class="mut">Carregando...</p></div></div>`;
+    <div id="agBody"><div class="spin"></div></div></div>`;
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     agTab = b.dataset.t;
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
@@ -668,7 +689,7 @@ async function dvIniciar() {
   dvTab = 'metas';
   $('conteudo').innerHTML = `<div class="dvm"><h2 style="margin:.5rem 0 1rem">🧠 LCORP Desenvolve</h2>
     <div class="tabs">${[['metas','🎯 Metas'],['rotina','📅 Rotina'],['prog','📊 Progresso']].map(t => `<button data-t="${t[0]}" class="${t[0] === dvTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
-    <div id="dvBody"><p class="mut">Carregando...</p></div></div>`;
+    <div id="dvBody"><div class="spin"></div></div></div>`;
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     dvTab = b.dataset.t;
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
@@ -761,7 +782,7 @@ async function cmIniciar() {
   cmTab = 'dash'; cmCar = {};
   $('conteudo').innerHTML = `<div class="cmm"><h2 style="margin:.5rem 0 1rem">🛍️ LCORP Comércio</h2>
     <div class="tabs">${[['dash','📊 Início'],['vender','🛒 Vender'],['prod','📦 Produtos'],['cli','👥 Clientes'],['hist','🧾 Vendas']].map(t => `<button data-t="${t[0]}" class="${t[0] === cmTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
-    <div id="cmBody"><p class="mut">Carregando...</p></div></div>`;
+    <div id="cmBody"><div class="spin"></div></div></div>`;
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     cmTab = b.dataset.t;
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
