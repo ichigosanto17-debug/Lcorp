@@ -558,9 +558,9 @@ function osZap(id) {
 
 /* ===== MÓDULO AGENDA (Barber e Beauty) ===== */
 const AG = {
-  barber: { ac:'#8B4513', ic:'💈', nome:'LCORP Barber', horas:['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'],
+  barber: { ac:'#8B4513', ic:'💈', icServ:'✂️', nome:'LCORP Barber', horas:['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'],
     padrao:[['Corte',35],['Corte + Barba',50],['Barba',25],['Completo',70]] },
-  beauty: { ac:'#EC4899', ic:'✨', nome:'LCORP Beauty', horas:['09:00','10:00','11:00','14:00','15:00','16:00'],
+  beauty: { ac:'#EC4899', ic:'✨', icServ:'💅', nome:'LCORP Beauty', horas:['09:00','10:00','11:00','14:00','15:00','16:00'],
     padrao:[['Limpeza de Pele',80],['Massagem Relaxante',100],['Design de Sobrancelhas',45],['Pacote Estética Completo',200]] }
 };
 let agS = 'barber', agSv = [], agA = [], agTab = 'dash';
@@ -569,7 +569,7 @@ const ST_AG = { agendado:['Agendado','#3B82F6'], concluido:['Concluído','#10B98
 async function agIniciar(sis) {
   agS = sis; agTab = 'dash'; const g = AG[sis];
   $('conteudo').innerHTML = `<div class="agm" style="--ac:${g.ac}"><h2 style="margin:.5rem 0 1rem">${g.ic} ${g.nome}</h2>
-    <div class="tabs">${[['dash','📊 Início'],['novo','➕ Agendar'],['agenda','📅 Agenda'],['serv','✂️ Serviços']].map(t => `<button data-t="${t[0]}" class="${t[0] === agTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div class="tabs">${[['dash','📊 Início'],['novo','➕ Agendar'],['agenda','📅 Agenda'],['serv', g.icServ + ' Serviços']].map(t => `<button data-t="${t[0]}" class="${t[0] === agTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
     <div id="agBody"><div class="spin"></div></div></div>`;
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     agTab = b.dataset.t;
@@ -621,7 +621,7 @@ function agDesenhar() {
       <div class="card"><h3 style="margin-bottom:.5rem">Próximos horários</h3>${prox.map(agItem).join('') || '<p class="mut">Nenhum horário agendado.</p>'}</div>`;
   } else if (agTab === 'novo') {
     b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Novo agendamento</h3>
-      ${agSv.length ? '' : '<p style="color:var(--warn)">Cadastre seus serviços na aba ✂️ Serviços antes de agendar.</p>'}
+      ${agSv.length ? '' : '<p style="color:var(--warn)">Cadastre seus serviços na aba ' + AG[agS].icServ + ' Serviços antes de agendar.</p>'}
       <form id="agForm"><div class="row2"><div><label>Cliente</label><input name="cliente" required></div><div><label>WhatsApp</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX"></div></div>
       <label>Serviço</label><select name="serv" required>${agSv.map(s => `<option value="${s.id}">${esc(s.nome)} — ${fmt(s.valor)}</option>`).join('')}</select>
       <div class="row2"><div><label>Data</label><input name="data" id="agD" type="date" required min="${h}" value="${h}"></div><div><label>Horário</label><select name="hora" id="agH" required></select></div></div>
