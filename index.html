@@ -58,6 +58,8 @@ details{margin-top:.5rem;font-size:.85rem;color:var(--mut)}details summary{curso
 .feito{opacity:.55;text-decoration:line-through}
 .cmm .tabs button.act{background:#0EA5E9;border-color:#0EA5E9;color:#04202D}
 .cmm details summary{color:#0EA5E9}
+body.marca .tabs button.act{background:var(--marca)!important;border-color:var(--marca)!important;color:#fff!important}
+body.marca .agm{--ac:var(--marca)!important}
 </style>
 </head>
 <body>
@@ -77,7 +79,7 @@ details{margin-top:.5rem;font-size:.85rem;color:var(--mut)}details summary{curso
 
 <div id="telaApp" class="hidden">
   <header>
-    <b>LCORP<span style="color:var(--pri)">.</span></b>
+    <b id="marca">LCORP<span style="color:var(--pri)">.</span></b>
     <span><span id="nomeUser" class="mut"></span> <button id="btnInstalar" class="btn out hidden" style="padding:.4rem .8rem;min-height:36px">📲 Instalar</button> <button id="btnSair" class="btn out" style="padding:.4rem .8rem;min-height:36px">Sair</button></span>
   </header>
   <div class="wrap" id="conteudo"></div>
@@ -95,6 +97,15 @@ const fmt = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', curre
 const dBR = iso => iso ? iso.split('-').reverse().join('/') : 'sem vencimento';
 const NOMES = {barber:'💈 Barber', beauty:'✨ Beauty', desenvolve:'🧠 Desenvolve', finance:'💹 Finance', os:'🛠️ Ordem de Serviços', comercio:'🛍️ Comércio'};
 
+function aplicarMarca(p) {
+  const ok = p.role === 'client' && ativo(p);
+  const cor = ok && /^#[0-9a-fA-F]{6}$/.test(p.cor || '') ? p.cor : null;
+  document.documentElement.style.setProperty('--pri', cor || '#2563EB');
+  document.documentElement.style.setProperty('--marca', cor || '#2563EB');
+  document.body.classList.toggle('marca', !!cor);
+  const logo = ok && p.logo && String(p.logo).startsWith('data:image/') ? p.logo : null;
+  $('marca').innerHTML = logo ? `<img src="${logo}" alt="" style="height:30px;width:auto;border-radius:6px;vertical-align:middle;margin-right:.5rem">${esc(p.nome)}` : 'LCORP<span style="color:var(--pri)">.</span>';
+}
 function ativo(p) {
   if (!p.ativo) return false;
   if (!p.vencimento) return true;
@@ -117,7 +128,7 @@ $('formLogin').addEventListener('submit', async e => {
   await iniciar();
 });
 
-$('btnSair').addEventListener('click', async () => { await sb.auth.signOut(); mostrar(false); });
+$('btnSair').addEventListener('click', async () => { await sb.auth.signOut(); aplicarMarca({ role: 'admin' }); mostrar(false); });
 
 async function iniciar() {
   const { data: { session } } = await sb.auth.getSession();
@@ -129,6 +140,7 @@ async function iniciar() {
     $('erroLogin').classList.remove('hidden'); return;
   }
   $('nomeUser').textContent = perfil.nome;
+  aplicarMarca(perfil);
   mostrar(true);
   if (perfil.role === 'admin') await painelAdmin(); else areaCliente(perfil);
 }
@@ -169,6 +181,53 @@ async function admAcao(body, ok) {
 window.admRenovar = id => { if (confirm('Renovar o plano deste cliente?')) admAcao({ acao: 'renovar', id }, '✅ Plano renovado!'); };
 window.admAtivo = (id, v) => admAcao({ acao: 'ativo', id, ativo: v });
 window.admSenha = id => { const s = prompt('Nova senha (mínimo 6 caracteres):'); if (s) admAcao({ acao: 'senha', id, senha: s }, '✅ Senha alterada!'); };
+window.admLogo = id => {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = () => {
+    const f = inp.files[0]; if (!f) return;
+    const img = new Image(), url = URL.createObjectURL(f);
+    img.onload = async () => {
+      const r = Math.min(1, 256 / Math.max(img.width, img.height)), w = Math.round(img.width * r), h = Math.round(img.height * r);
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      let d = cv.toDataURL('image/png'); if (d.length > 120000) d = cv.toDataURL('image/jpeg', .85);
+      URL.revokeObjectURL(url);
+      const { error } = await sb.from('profiles').update({ logo: d }).eq('id', id);
+      if (error) { alert('Erro: ' + error.message); return; }
+      alert('✅ Logo salva! O cliente verá no próximo acesso.');
+    };
+    img.onerror = () => alert('Não foi possível ler essa imagem.');
+    img.src = url;
+  };
+  inp.click();
+};
+window.admCor = async id => {
+  const c = prompt('Cor de destaque no formato #RRGGBB (ex.: #8B4513). Deixe vazio para remover:');
+  if (c === null) return; const v = c.trim();
+  if (v && !/^#[0-9a-fA-F]{6}$/.test(v)) { alert('Use o formato #RRGGBB.'); return; }
+  const { error } = await sb.from('profiles').update({ cor: v || null }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  alert('✅ Cor salva!'); await painelAdmin();
+};
+window.admBackup = async () => {
+  const b = $('btnBackup'); b.disabled = true; b.textContent = 'Gerando backup...';
+  const tabs = ['profiles','fin_lancamentos','fin_categorias','os_clientes','os_ordens','servicos','agendamentos','metas','habitos','habito_marcas','produtos','loja_clientes','vendas','venda_itens','mov_estoque'];
+  const out = { gerado_em: new Date().toISOString(), tabelas: {} };
+  for (const t of tabs) {
+    let todas = [], de = 0;
+    while (true) {
+      const { data, error } = await sb.from(t).select('*').order('id').range(de, de + 999);
+      if (error) { out.tabelas[t] = { erro: error.message }; todas = null; break; }
+      todas = todas.concat(data); if (data.length < 1000) break; de += 1000;
+    }
+    if (todas) out.tabelas[t] = todas;
+  }
+  const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'lcorp-backup-' + hoje() + '.json'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  b.disabled = false; b.textContent = 'Exportar backup (JSON)';
+  alert('✅ Backup gerado! Guarde o arquivo em um lugar seguro (Google Drive, por exemplo).');
+};
 window.admExcluir = id => { if (confirm('Excluir este cliente e todos os dados dele? Não dá para desfazer.')) admAcao({ acao: 'excluir', id }, 'Cliente excluído.'); };
 
 function admPlanos() {
@@ -177,7 +236,11 @@ function admPlanos() {
 }
 
 async function painelAdmin() {
-  const { data: lista, error } = await sb.from('profiles').select('*').eq('role', 'client').order('vencimento', { ascending: true, nullsFirst: false });
+  let { data: lista, error } = await sb.from('profiles').select('id,role,nome,whats,sistema,plano,valor,periodo,vencimento,ativo,created_at,cor').eq('role', 'client').order('vencimento', { ascending: true, nullsFirst: false });
+  if (error) { // se a coluna "cor" ainda não existe no banco, tenta sem ela
+    const r2 = await sb.from('profiles').select('id,role,nome,whats,sistema,plano,valor,periodo,vencimento,ativo,created_at').eq('role', 'client').order('vencimento', { ascending: true, nullsFirst: false });
+    lista = r2.data; error = r2.error;
+  }
   if (error) { $('conteudo').innerHTML = '<p class="msg">Não foi possível carregar os clientes.</p>'; return; }
   admLista = lista || [];
   const ativos = admLista.filter(ativo).length;
@@ -209,10 +272,15 @@ async function painelAdmin() {
             <button class="btn out sm" onclick="admRenovar('${c.id}')">Renovar</button>
             <button class="btn out sm" onclick="admAtivo('${c.id}', ${!c.ativo})">${c.ativo ? 'Bloquear' : 'Ativar'}</button>
             <button class="btn out sm" onclick="admSenha('${c.id}')">Senha</button>
+            <button class="btn out sm" onclick="admLogo('${c.id}')">🖼️ Logo</button>
+            <button class="btn out sm" onclick="admCor('${c.id}')">🎨 Cor</button>
             <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="admExcluir('${c.id}')">🗑</button>
           </div>
         </div>`).join('') : '<p class="mut">Nenhum cliente ainda.</p>'}
-    </div>`;
+    </div>
+    <div class="card"><h3 style="margin-bottom:.5rem">💾 Backup</h3>
+      <p class="mut" style="margin-bottom:.75rem">Baixa uma cópia de todos os dados do sistema (clientes e módulos) em um arquivo. Leva alguns segundos.</p>
+      <button class="btn out" id="btnBackup" onclick="admBackup()">Exportar backup (JSON)</button></div>`;
   admPlanos();
   $('cSis').onchange = admPlanos;
   $('formCli').onsubmit = async e => {
