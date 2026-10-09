@@ -66,6 +66,15 @@ body.marca .agm{--ac:var(--marca)!important}
 .toast{pointer-events:auto;max-width:92%;white-space:pre-line;background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--pri);padding:.8rem 1rem;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:ent .2s ease;cursor:pointer}
 .toast.ok{border-left-color:var(--ok)}.toast.bad{border-left-color:var(--bad)}.toast.sai{opacity:0;transition:opacity .25s}
 @keyframes ent{from{opacity:0;transform:translateY(8px)}}
+.pap .tabs button.act{background:#EAB308;border-color:#EAB308;color:#1F1600}
+.pap details summary{color:#EAB308}
+.pcard{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:.9rem 1rem;margin-bottom:.7rem;cursor:pointer}
+.pmeta{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem}
+.pmodal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;overflow-y:auto;padding:1rem}
+.pbox{max-width:620px;margin:0 auto;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:1.2rem}
+.psec{border-top:1px solid var(--bd);padding:.9rem 0}
+.psec h4{color:#EAB308;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem}
+.gal{display:flex;gap:.5rem;flex-wrap:wrap}.gal img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid var(--bd)}
 </style>
 </head>
 <body>
@@ -86,7 +95,7 @@ body.marca .agm{--ac:var(--marca)!important}
 
 <div id="telaApp" class="hidden">
   <header>
-    <b id="marca">LCORP<span style="color:var(--pri)">.</span></b>
+    <b id="marca"><img src="icon-192.png" alt="" style="height:34px;width:34px;border-radius:9px;vertical-align:middle;margin-right:.5rem">LCORP</b>
     <span><span id="nomeUser" class="mut"></span> <button id="btnInstalar" class="btn out hidden" style="padding:.4rem .8rem;min-height:36px">📲 Instalar</button> <button id="btnSair" class="btn out" style="padding:.4rem .8rem;min-height:36px">Sair</button></span>
   </header>
   <div class="wrap" id="conteudo"></div>
@@ -102,7 +111,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const dBR = iso => iso ? iso.split('-').reverse().join('/') : 'sem vencimento';
-const NOMES = {barber:'💈 Barber', beauty:'✨ Beauty', desenvolve:'🧠 Desenvolve', finance:'💹 Finance', os:'🛠️ Ordem de Serviços', comercio:'🛍️ Comércio'};
+const NOMES = {barber:'💈 Barber', beauty:'✨ Beauty', desenvolve:'🧠 Desenvolve', finance:'💹 Finance', os:'🛠️ Ordem de Serviços', comercio:'🛍️ Comércio', papelaria:'🖨️ Papelaria'};
 
 function toast(m) {
   m = String(m); let t = 'info';
@@ -123,7 +132,7 @@ function aplicarMarca(p) {
   document.documentElement.style.setProperty('--marca', cor || '#2563EB');
   document.body.classList.toggle('marca', !!cor);
   const logo = ok && p.logo && String(p.logo).startsWith('data:image/') ? p.logo : null;
-  $('marca').innerHTML = logo ? `<img src="${logo}" alt="" style="height:30px;width:auto;border-radius:6px;vertical-align:middle;margin-right:.5rem">${esc(p.nome)}` : 'LCORP<span style="color:var(--pri)">.</span>';
+  $('marca').innerHTML = logo ? `<img src="${logo}" alt="" style="height:30px;width:auto;border-radius:6px;vertical-align:middle;margin-right:.5rem">${esc(p.nome)}` : '<img src="icon-192.png" alt="" style="height:34px;width:34px;border-radius:9px;vertical-align:middle;margin-right:.5rem">LCORP';
 }
 function ativo(p) {
   if (!p.ativo) return false;
@@ -164,7 +173,7 @@ async function iniciar() {
   if (perfil.role === 'admin') await painelAdmin(); else areaCliente(perfil);
 }
 
-const PRECOS = {barber:[49.9,245,450],beauty:[69.9,350,645],desenvolve:[14.9,69.9,129.9],finance:[39.9,199,359],os:[59.9,299,549],comercio:[79.9,399,719]};
+const PRECOS = {barber:[49.9,245,450],beauty:[69.9,350,645],desenvolve:[14.9,69.9,129.9],finance:[39.9,199,359],os:[59.9,299,549],comercio:[79.9,399,719],papelaria:[69.9,349,639]};
 const PLN = ['Mensal','Semestral','Anual'], PLK = ['mensal','semestral','anual'], PER = ['/mês','/6 meses','/12 meses'];
 const PIX_CHAVE = '29858d90-02ba-4b85-a89c-a82401086516'; // troque aqui se sua chave Pix for outra
 const diasPara = v => v ? Math.round((new Date(v + 'T12:00:00') - new Date(hoje() + 'T12:00:00')) / 864e5) : null;
@@ -229,7 +238,7 @@ window.admCor = async id => {
 };
 window.admBackup = async () => {
   const b = $('btnBackup'); b.disabled = true; b.textContent = 'Gerando backup...';
-  const tabs = ['profiles','fin_lancamentos','fin_categorias','os_clientes','os_ordens','servicos','agendamentos','metas','habitos','habito_marcas','produtos','loja_clientes','vendas','venda_itens','mov_estoque'];
+  const tabs = ['profiles','fin_lancamentos','fin_categorias','os_clientes','os_ordens','servicos','agendamentos','metas','habitos','habito_marcas','produtos','loja_clientes','vendas','venda_itens','mov_estoque','pap_pedidos'];
   const out = { gerado_em: new Date().toISOString(), tabelas: {} };
   for (const t of tabs) {
     let todas = [], de = 0;
@@ -323,6 +332,7 @@ function areaCliente(p) {
   if (ok && p.sistema === 'finance') { finIniciar(p); return; }
   if (ok && p.sistema === 'os') { osIniciar(); return; }
   if (ok && p.sistema === 'comercio') { cmIniciar(); return; }
+  if (ok && p.sistema === 'papelaria') { papIniciar(); return; }
   if (ok && p.sistema === 'desenvolve') { dvIniciar(); return; }
   if (ok && (p.sistema === 'barber' || p.sistema === 'beauty')) { agIniciar(p.sistema); return; }
   $('conteudo').innerHTML = `
@@ -909,6 +919,191 @@ async function cmExcluirC(id) {
 async function cmReceber(id) {
   const { error } = await sb.from('vendas').update({ status: 'pago' }).eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; } await cmCarregar();
+}
+
+
+/* ===== MÓDULO PAPELARIA / GRÁFICA ===== */
+const PAP_ST = { novo:['Novo','#3B82F6'], arte:['Em arte','#A78BFA'], producao:['Em impressão','#F59E0B'], pronto:['Pronto','#10B981'], entregue:['Entregue','#94A3B8'] };
+const PAP_ACOES = {
+  novo: [['🎨 Enviar para arte', 'arte', false], ['🖨️ Mover para impressão', 'producao', false]],
+  arte: [['🖨️ Mover para impressão', 'producao', false]],
+  producao: [['✅ Finalizar e avisar cliente', 'pronto', true]],
+  pronto: [['📦 Marcar como entregue', 'entregue', false], ['💬 Avisar de novo', 'pronto', true]],
+  entregue: [['↩️ Reabrir como pronto', 'pronto', false]]
+};
+let papP = [], papTab = 'fila', papFiltro = 'ativos', papUid = null;
+const papIni = s => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+
+function papPrazo(e) {
+  if (!e) return { txt: 'sem prazo', cor: '#94A3B8' };
+  const d = new Date(e), hoje0 = papIni(), d0 = new Date(d); d0.setHours(0, 0, 0, 0);
+  const dias = Math.round((d0 - hoje0) / 864e5), hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  let txt = dias < 0 ? 'Atrasado • ' + dBR(d.toISOString().slice(0, 10)) : dias === 0 ? 'Hoje, ' + hora : dias === 1 ? 'Amanhã, ' + hora
+    : dias <= 6 ? d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '') + ', ' + hora : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + hora;
+  return { txt, cor: dias <= 1 ? '#EF4444' : dias <= 7 ? '#F59E0B' : '#94A3B8' };
+}
+
+async function papIniciar() {
+  papTab = 'fila'; papFiltro = 'ativos';
+  $('conteudo').innerHTML = `<div class="pap"><h2 style="margin:.5rem 0 1rem">🖨️ LCORP Papelaria</h2>
+    <div class="tabs">${[['fila','🖨️ Fila de produção'],['novo','➕ Novo pedido']].map(t => `<button data-t="${t[0]}" class="${t[0] === papTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="papBody"><div class="spin"></div></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    papTab = b.dataset.t;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x === b));
+    papDesenhar();
+  });
+  const { data: u } = await sb.auth.getUser(); papUid = u && u.user ? u.user.id : null;
+  await papCarregar();
+}
+
+async function papCarregar() {
+  const { data, error } = await sb.from('pap_pedidos').select('*').order('entrega', { ascending: true, nullsFirst: false });
+  if (error) { $('papBody').innerHTML = '<p class="msg">Não foi possível carregar. Confira se o script da Papelaria foi executado no Supabase.</p>'; return; }
+  papP = data; papDesenhar();
+}
+
+function papCard(p) {
+  const pr = papPrazo(p.entrega), st = PAP_ST[p.status];
+  return `<div class="pcard" onclick="papAbrir(${p.id})" style="border-left:4px solid ${st[1]}">
+    <div style="display:flex;justify-content:space-between;gap:.5rem"><b>#${p.num} — ${esc(p.cliente)}</b>${(p.anexos || []).length ? '<span title="Tem anexos">📎</span>' : ''}</div>
+    <div class="mut">${esc(p.servico)}</div>
+    <div class="pmeta"><span class="chip2" style="background:${pr.cor}33;color:${pr.cor}">📅 ${esc(pr.txt)}</span>
+      <span class="chip2" style="background:${p.pago ? '#10B98133' : '#EF444433'};color:${p.pago ? '#6EE7B7' : '#FCA5A5'}">${p.pago ? 'Pago' : 'Pendente'}</span>
+      <span class="chip2" style="background:${st[1]}33;color:${st[1]}">${st[0]}</span></div></div>`;
+}
+
+function papDesenhar() {
+  const b = $('papBody');
+  if (papTab === 'fila') {
+    const ativos = papP.filter(p => p.status !== 'entregue'), h0 = papIni();
+    const urg = ativos.filter(p => p.entrega && Math.round((new Date(new Date(p.entrega).setHours(0, 0, 0, 0)) - h0) / 864e5) <= 1).length;
+    const receber = papP.filter(p => !p.pago).reduce((s, p) => s + Number(p.valor), 0);
+    const chips = [['ativos', 'Ativos (' + ativos.length + ')'], ...Object.entries(PAP_ST).map(([k, v]) => [k, v[0] + ' (' + papP.filter(p => p.status === k).length + ')'])];
+    const L = papP.filter(p => papFiltro === 'ativos' ? p.status !== 'entregue' : p.status === papFiltro);
+    b.innerHTML = `<div class="kpis"><div class="card kpi"><small>Para hoje/amanhã ou atrasados</small><b style="color:${urg ? 'var(--bad)' : 'var(--txt)'}">${urg}</b></div>
+      <div class="card kpi"><small>Pedidos ativos</small><b>${ativos.length}</b></div>
+      <div class="card kpi"><small>A receber</small><b>${fmt(receber)}</b></div></div>
+      <div class="tabs" id="papChips">${chips.map(c => `<button data-f="${c[0]}" class="${c[0] === papFiltro ? 'act' : ''}">${c[1]}</button>`).join('')}</div>
+      ${L.map(papCard).join('') || '<p class="mut" style="text-align:center;padding:1.5rem">Nenhum pedido aqui. Toque em ➕ Novo pedido.</p>'}`;
+    document.querySelectorAll('#papChips button').forEach(x => x.onclick = () => { papFiltro = x.dataset.f; papDesenhar(); });
+  } else {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Novo pedido</h3><form id="papForm">
+      <div class="row2"><div><label>Cliente</label><input name="cliente" required></div><div><label>WhatsApp</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX"></div></div>
+      <label>Serviço principal</label><input name="servico" list="papServ" required placeholder="Ex.: Topo de bolo (Casamento)">
+      <datalist id="papServ"><option>Topo de bolo</option><option>Adesivos</option><option>Convites</option><option>Caixa personalizada</option><option>Cartão de visita</option><option>Banner</option><option>Etiquetas</option><option>Lembrancinhas</option></datalist>
+      <div class="row2"><div><label>Prazo de entrega</label><input name="entrega" type="datetime-local"></div><div><label>Valor (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" value="0"></div></div>
+      <label>Material</label><input name="material" placeholder="Ex.: Todo em lamicote">
+      <div class="row2"><div><label>Medidas</label><input name="medidas" placeholder="Ex.: Aro 15, altura 12"></div><div><label>Acabamento</label><input name="acabamento" placeholder="Ex.: Corte especial"></div></div>
+      <label>Observações do cliente</label><textarea name="obs" rows="3" placeholder="O que o cliente pediu?"></textarea>
+      <label>Pagamento</label><select name="pago"><option value="0">Pendente</option><option value="1">Pago</option></select>
+      <label>Referências (imagens ou PDF, até 6)</label><input name="arq" type="file" accept="image/*,application/pdf" multiple>
+      <button class="btn full" id="papSalvarBtn" style="background:#EAB308;color:#1F1600" type="submit">✅ Criar pedido</button></form></div>`;
+    $('papForm').onsubmit = papSalvar;
+  }
+}
+
+function papComprimir(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => {
+      const r = Math.min(1, 1600 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * r); cv.height = Math.round(img.height * r);
+      const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(b => { URL.revokeObjectURL(u); res(b); }, 'image/jpeg', .85);
+    };
+    img.onerror = () => rej(new Error('Imagem inválida.'));
+    img.src = u;
+  });
+}
+
+async function papSalvar(e) {
+  e.preventDefault(); const f = e.target.elements, btn = $('papSalvarBtn');
+  const files = [...f.arq.files].slice(0, 6);
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const num = papP.reduce((m, p) => Math.max(m, p.num), 0) + 1, caminhos = [];
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const fl = files[i], pdf = fl.type === 'application/pdf';
+      if (pdf && fl.size > 10 * 1024 * 1024) throw new Error('O PDF "' + fl.name + '" passa de 10 MB.');
+      const blob = pdf ? fl : await papComprimir(fl), path = `${papUid}/${num}-${Date.now()}-${i}.${pdf ? 'pdf' : 'jpg'}`;
+      const { error } = await sb.storage.from('pap-anexos').upload(path, blob, { contentType: pdf ? 'application/pdf' : 'image/jpeg' });
+      if (error) throw error; caminhos.push(path);
+    }
+    const { error } = await sb.from('pap_pedidos').insert({ num, cliente: f.cliente.value.trim(), tel: f.tel.value.trim(), servico: f.servico.value.trim(), material: f.material.value.trim(), medidas: f.medidas.value.trim(), acabamento: f.acabamento.value.trim(), obs: f.obs.value.trim(), entrega: f.entrega.value ? new Date(f.entrega.value).toISOString() : null, valor: parseFloat(f.valor.value) || 0, pago: f.pago.value === '1', anexos: caminhos, hist: [{ d: agoraBR(), t: 'Pedido criado' }] });
+    if (error) throw error;
+    papTab = 'fila'; document.querySelectorAll('.tabs button[data-t]').forEach(x => x.classList.toggle('act', x.dataset.t === 'fila'));
+    await papCarregar(); alert('✅ Pedido #' + num + ' criado!');
+  } catch (err) {
+    if (caminhos.length) sb.storage.from('pap-anexos').remove(caminhos);
+    alert('Erro: ' + (err.message || err)); btn.disabled = false; btn.textContent = '✅ Criar pedido';
+  }
+}
+
+function papZapUrl(p, msg) {
+  let n = (p.tel || '').replace(/\D/g, ''); if (!n) return null; if (n.length <= 11) n = '55' + n;
+  return 'https://wa.me/' + n + '?text=' + encodeURIComponent(msg);
+}
+const papMsgPronto = p => `Olá ${p.cliente.split(' ')[0]}! O seu pedido #${p.num} (${p.servico}) já está pronto para retirada! 😊`;
+
+async function papAbrir(id) {
+  const p = papP.find(x => x.id === id); if (!p) return;
+  const pr = papPrazo(p.entrega), st = PAP_ST[p.status], anx = p.anexos || [];
+  const el = document.createElement('div'); el.className = 'pmodal'; el.id = 'papModal';
+  el.onclick = ev => { if (ev.target === el) papFechar(); };
+  el.innerHTML = `<div class="pbox">
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:.5rem"><div><h3>#${p.num} — ${esc(p.servico)}</h3>
+      <div class="pmeta"><span class="chip2" style="background:${st[1]}33;color:${st[1]}">${st[0]}</span><span class="chip2" style="background:${pr.cor}33;color:${pr.cor}">📅 ${esc(pr.txt)}</span></div></div>
+      <button class="btn out sm" onclick="papFechar()">✕</button></div>
+    <div class="psec"><h4>Contato rápido</h4><p><b>${esc(p.cliente)}</b>${p.tel ? ' • 📱 ' + esc(p.tel) : ''}</p>
+      ${p.tel ? `<a class="btn full" style="background:#25D366;color:#052e16;display:flex;justify-content:center;text-decoration:none;margin-top:.6rem" target="_blank" href="${papZapUrl(p, 'Olá ' + p.cliente.split(' ')[0] + '! Sobre o seu pedido #' + p.num + ' (' + p.servico + '):')}">💬 Conversar no WhatsApp</a>` : '<p class="mut">Sem WhatsApp cadastrado.</p>'}</div>
+    <div class="psec"><h4>Ficha de produção</h4><p><b>Material:</b> ${esc(p.material) || '—'}</p><p><b>Medidas:</b> ${esc(p.medidas) || '—'}</p><p><b>Acabamento:</b> ${esc(p.acabamento) || '—'}</p></div>
+    <div class="psec"><h4>Detalhes e observações</h4><p style="white-space:pre-line">${esc(p.obs) || '—'}</p></div>
+    <div class="psec"><h4>Pagamento</h4><p>${fmt(p.valor)} • <b style="color:${p.pago ? 'var(--ok)' : 'var(--bad)'}">${p.pago ? 'Pago' : 'Pendente'}</b></p>
+      <button class="btn out sm" style="margin-top:.5rem" onclick="papPago(${p.id})">${p.pago ? 'Marcar como pendente' : '💰 Marcar como pago'}</button></div>
+    <div class="psec"><h4>Galeria de referências (${anx.length})</h4><div class="gal" id="papGal">${anx.length ? '<div class="spin"></div>' : '<p class="mut">Nenhum anexo.</p>'}</div>
+      ${anx.length ? `<button class="btn out sm" style="margin-top:.6rem" onclick="papBaixar(${p.id})">⬇️ Baixar tudo</button>` : ''}</div>
+    <div class="psec"><h4>Ações</h4><div style="display:grid;gap:.5rem">${PAP_ACOES[p.status].map((a, i) => `<button class="btn" style="background:#EAB308;color:#1F1600" onclick="papMover(${p.id},'${a[1]}',${a[2]})">${a[0]}</button>`).join('')}
+      <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="papExcluir(${p.id})">🗑 Excluir pedido</button></div></div>
+    <details><summary>Histórico (${(p.hist || []).length})</summary><ul style="margin:.3rem 0 0 1.1rem">${(p.hist || []).map(h => `<li>${esc(h.d)} — ${esc(h.t)}</li>`).join('')}</ul></details></div>`;
+  document.body.appendChild(el); document.body.style.overflow = 'hidden';
+  if (anx.length) {
+    const urls = await Promise.all(anx.map(a => sb.storage.from('pap-anexos').createSignedUrl(a, 3600).then(r => r.data ? r.data.signedUrl : null)));
+    const g = $('papGal'); if (!g) return;
+    g.innerHTML = urls.map((u, i) => !u ? '' : anx[i].endsWith('.pdf') ? `<a href="${u}" target="_blank" class="btn out sm">📄 PDF ${i + 1}</a>` : `<a href="${u}" target="_blank"><img src="${u}" alt="Referência ${i + 1}"></a>`).join('');
+  }
+}
+function papFechar() { const m = $('papModal'); if (m) m.remove(); document.body.style.overflow = ''; }
+
+async function papBaixar(id) {
+  const p = papP.find(x => x.id === id); if (!p) return;
+  for (let i = 0; i < p.anexos.length; i++) {
+    const { data, error } = await sb.storage.from('pap-anexos').download(p.anexos[i]);
+    if (error) { alert('Erro ao baixar: ' + error.message); return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(data);
+    a.download = `pedido${p.num}-${i + 1}.${p.anexos[i].split('.').pop()}`; document.body.appendChild(a); a.click(); a.remove();
+    await new Promise(r => setTimeout(r, 500));
+  }
+}
+async function papMover(id, st, avisar) {
+  const p = papP.find(x => x.id === id); if (!p) return;
+  if (avisar) { const u = papZapUrl(p, papMsgPronto(p)); if (u) window.open(u, '_blank'); else alert('Cliente sem WhatsApp cadastrado, o status foi atualizado mesmo assim.'); }
+  const { error } = await sb.from('pap_pedidos').update({ status: st, hist: [...(p.hist || []), { d: agoraBR(), t: 'Status: ' + PAP_ST[st][0] }] }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  papFechar(); await papCarregar();
+}
+async function papPago(id) {
+  const p = papP.find(x => x.id === id); if (!p) return;
+  const { error } = await sb.from('pap_pedidos').update({ pago: !p.pago }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  papFechar(); await papCarregar();
+}
+async function papExcluir(id) {
+  const p = papP.find(x => x.id === id); if (!p || !confirm('Excluir este pedido e os anexos dele?')) return;
+  if ((p.anexos || []).length) await sb.storage.from('pap-anexos').remove(p.anexos);
+  const { error } = await sb.from('pap_pedidos').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  papFechar(); await papCarregar();
 }
 
 /* ===== PWA ===== */
