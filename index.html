@@ -90,6 +90,7 @@ body.marca .agm{--ac:var(--marca)!important}
     <input id="senha" type="password" autocomplete="current-password" required>
     <button id="btnEntrar" class="btn full" type="submit">Entrar</button>
     <p id="erroLogin" class="msg hidden"></p>
+    <p style="text-align:center;margin-top:1.2rem;font-size:.85rem"><a href="privacidade.html" style="color:var(--mut);text-decoration:underline">Privacidade e termos de uso</a></p>
   </form>
 </div>
 
@@ -168,7 +169,7 @@ async function iniciar() {
     $('erroLogin').classList.remove('hidden'); return;
   }
   $('nomeUser').textContent = perfil.nome;
-  aplicarMarca(perfil);
+  aplicarMarca(perfil); window.perfilAtual = perfil;
   mostrar(true);
   if (perfil.role === 'admin') await painelAdmin(); else areaCliente(perfil);
 }
@@ -329,12 +330,12 @@ async function painelAdmin() {
 
 function areaCliente(p) {
   const ok = ativo(p);
-  if (ok && p.sistema === 'finance') { finIniciar(p); return; }
-  if (ok && p.sistema === 'os') { osIniciar(); return; }
-  if (ok && p.sistema === 'comercio') { cmIniciar(); return; }
-  if (ok && p.sistema === 'papelaria') { papIniciar(); return; }
-  if (ok && p.sistema === 'desenvolve') { dvIniciar(); return; }
-  if (ok && (p.sistema === 'barber' || p.sistema === 'beauty')) { agIniciar(p.sistema); return; }
+  if (ok && p.sistema === 'finance') { finIniciar(p); expBotao(p.sistema); return; }
+  if (ok && p.sistema === 'os') { osIniciar(); expBotao(p.sistema); return; }
+  if (ok && p.sistema === 'comercio') { cmIniciar(); expBotao(p.sistema); return; }
+  if (ok && p.sistema === 'papelaria') { papIniciar(); expBotao(p.sistema); return; }
+  if (ok && p.sistema === 'desenvolve') { dvIniciar(); expBotao(p.sistema); return; }
+  if (ok && (p.sistema === 'barber' || p.sistema === 'beauty')) { agIniciar(p.sistema); expBotao(p.sistema); return; }
   $('conteudo').innerHTML = `
     <h2 style="margin:.5rem 0 1rem">Olá, ${esc(p.nome)}! 👋</h2>
     <div class="card">
@@ -570,7 +571,7 @@ function osZap(id) {
 const AG = {
   barber: { ac:'#8B4513', ic:'💈', icServ:'✂️', nome:'LCORP Barber', horas:['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'],
     padrao:[['Corte',35],['Corte + Barba',50],['Barba',25],['Completo',70]] },
-  beauty: { ac:'#EC4899', ic:'✨', icServ:'💅', nome:'LCORP Beauty', horas:['09:00','10:00','11:00','14:00','15:00','16:00'],
+  beauty: { ac:'#EC4899', ic:'✨', icServ:'💅', nome:'LCORP Beauty', horas:(() => { const h = []; for (let m = 7 * 60 + 30; m <= 19 * 60; m += 30) h.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')); return h; })(),
     padrao:[['Limpeza de Pele',80],['Massagem Relaxante',100],['Design de Sobrancelhas',45],['Pacote Estética Completo',200]] }
 };
 let agS = 'barber', agSv = [], agA = [], agTab = 'dash';
@@ -860,6 +861,7 @@ function cmDesenhar() {
       return `<div class="item" style="display:block"><div style="display:flex;justify-content:space-between;gap:.5rem"><div><b>#${v.id} — ${dBR(v.data)}</b><br><span class="mut">${esc(c ? c.nome : 'Sem cliente')} • ${CM_PG[v.pagamento]}</span><br>
         <span class="chip ${v.status === 'pago' ? 'on' : 'off'}">${v.status === 'pago' ? 'PAGO' : 'A RECEBER'}</span></div><b>${fmt(v.total)}</b></div>
         ${v.status === 'pendente' ? `<button class="btn out sm" style="margin-top:.5rem" onclick="cmReceber(${v.id})">💰 Marcar como recebido</button>` : ''}
+        <button class="btn out sm" style="color:var(--bad);border-color:var(--bad);margin-top:.5rem" onclick="cmCancelar(${v.id})">🗑 Cancelar venda</button>
         <details><summary>Itens (${it.length})</summary>${it.map(i => `<div>${esc(i.nome)} × ${i.qtd} — ${fmt(i.preco * i.qtd)}</div>`).join('')}</details></div>`; }).join('') || '<p class="mut" style="text-align:center">Nenhuma venda ainda.</p>'}</div>`;
   }
 }
@@ -921,6 +923,13 @@ async function cmReceber(id) {
   if (error) { alert('Erro: ' + error.message); return; } await cmCarregar();
 }
 
+
+async function cmCancelar(id) {
+  if (!confirm('Cancelar a venda #' + id + '? Os itens voltam ao estoque e a venda sai do histórico. Não dá para desfazer.')) return;
+  const { error } = await sb.rpc('cancelar_venda', { p_venda: id });
+  if (error) { alert('Erro: ' + error.message); return; }
+  await cmCarregar(); alert('✅ Venda cancelada e estoque devolvido.');
+}
 
 /* ===== MÓDULO PAPELARIA / GRÁFICA ===== */
 const PAP_ST = { novo:['Novo','#3B82F6'], arte:['Em arte','#A78BFA'], producao:['Em impressão','#F59E0B'], pronto:['Pronto','#10B981'], entregue:['Entregue','#94A3B8'] };
@@ -1104,6 +1113,140 @@ async function papExcluir(id) {
   const { error } = await sb.from('pap_pedidos').delete().eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; }
   papFechar(); await papCarregar();
+}
+
+
+/* ===== EXPORTAÇÃO DE RELATÓRIOS (PDF e planilha) ===== */
+let expMod = null;
+const R = v => ({ m: Number(v) });
+const celM = v => v && typeof v === 'object' && 'm' in v;
+const semEmoji = v => String(v == null ? '' : v).replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim();
+
+const EXP = {
+  finance: { nome: 'Finance', buscar: async (t, ini, fim) => {
+    const { data, error } = await sb.from('fin_lancamentos').select('*').gte('data', ini).lte('data', fim).order('data'); if (error) throw error;
+    const s = (tp, st) => data.filter(l => l.tipo === tp && l.status === st).reduce((a, l) => a + Number(l.valor), 0);
+    return { colunas: ['Data', 'Descrição', 'Categoria', 'Tipo', 'Situação', 'Valor'],
+      linhas: data.map(l => [dBR(l.data), l.descr, l.cat || '', l.tipo === 'receita' ? 'Receita' : 'Despesa', l.status === 'pago' ? 'Pago' : 'Pendente', R(Number(l.valor) * (l.tipo === 'receita' ? 1 : -1))]),
+      resumo: [['Receitas (pagas)', R(s('receita', 'pago'))], ['Despesas (pagas)', R(s('despesa', 'pago'))], ['Saldo do período', R(s('receita', 'pago') - s('despesa', 'pago'))], ['A receber', R(s('receita', 'pendente'))], ['A pagar', R(s('despesa', 'pendente'))]] };
+  } },
+  os: { nome: 'Ordem de Serviços', buscar: async (t, ini, fim) => {
+    const [a, b] = await Promise.all([sb.from('os_ordens').select('*').gte('data', ini).lte('data', fim).order('num'), sb.from('os_clientes').select('id,nome')]);
+    if (a.error || b.error) throw (a.error || b.error);
+    const O = a.data, nm = id => (b.data.find(c => c.id === id) || {}).nome || '—', fechada = o => ['concluida', 'entregue'].includes(o.status);
+    return { colunas: ['Nº', 'Abertura', 'Cliente', 'Equipamento / Serviço', 'Prioridade', 'Status', 'Previsão', 'Valor'],
+      linhas: O.map(o => [o.num, dBR(o.data), nm(o.cliente_id), o.equip, OS_PR[o.prior], OS_ST[o.status][0], o.prev ? dBR(o.prev) : '', R(o.valor)]),
+      resumo: [['Ordens no período', String(O.length)], ...Object.entries(OS_ST).map(([k, v]) => [v[0], String(O.filter(o => o.status === k).length)]),
+        ['Faturado (concluídas e entregues)', R(O.filter(fechada).reduce((s, o) => s + Number(o.valor), 0))], ['Em aberto (R$)', R(O.filter(o => !fechada(o)).reduce((s, o) => s + Number(o.valor), 0))]] };
+  } },
+  comercio: { nome: 'Comércio', tipos: [['vendas', 'Vendas do período'], ['estoque', 'Estoque atual (ignora o período)']], buscar: async (t, ini, fim) => {
+    if (t === 'estoque') {
+      const { data, error } = await sb.from('produtos').select('*').order('nome'); if (error) throw error;
+      return { colunas: ['Produto', 'Categoria', 'Custo', 'Preço', 'Estoque', 'Mínimo', 'Valor em estoque (custo)'],
+        linhas: data.map(p => [p.nome, p.categoria || '', R(p.custo), R(p.preco), p.qtd, p.minimo, R(Number(p.custo) * p.qtd)]),
+        resumo: [['Produtos cadastrados', String(data.length)], ['Valor total em estoque (custo)', R(data.reduce((s, p) => s + Number(p.custo) * p.qtd, 0))], ['Com estoque baixo ou zerado', String(data.filter(p => p.qtd <= p.minimo).length)]] };
+    }
+    const [v, c] = await Promise.all([sb.from('vendas').select('*').gte('data', ini).lte('data', fim).order('id'), sb.from('loja_clientes').select('id,nome')]);
+    if (v.error || c.error) throw (v.error || c.error);
+    let it = []; const ids = v.data.map(x => x.id);
+    if (ids.length) { const r = await sb.from('venda_itens').select('*').in('venda_id', ids); if (r.error) throw r.error; it = r.data; }
+    const tot = v.data.reduce((s, x) => s + Number(x.total), 0), custo = it.reduce((s, i) => s + Number(i.custo) * i.qtd, 0);
+    return { colunas: ['Nº', 'Data', 'Cliente', 'Pagamento', 'Itens', 'Desconto', 'Total', 'Situação'],
+      linhas: v.data.map(x => [x.id, dBR(x.data), (c.data.find(k => k.id === x.cliente_id) || {}).nome || '—', CM_PG[x.pagamento], it.filter(i => i.venda_id === x.id).map(i => i.nome + ' x' + i.qtd).join(', '), R(x.desconto), R(x.total), x.status === 'pago' ? 'Pago' : 'A receber']),
+      resumo: [['Vendas no período', String(v.data.length)], ['Total vendido', R(tot)], ['Lucro estimado', R(tot - custo)], ['Fiado a receber', R(v.data.filter(x => x.status === 'pendente').reduce((s, x) => s + Number(x.total), 0))]] };
+  } },
+  papelaria: { nome: 'Papelaria', buscar: async (t, ini, fim) => {
+    const { data, error } = await sb.from('pap_pedidos').select('*').gte('created_at', new Date(ini + 'T00:00:00').toISOString()).lte('created_at', new Date(fim + 'T23:59:59').toISOString()).order('num'); if (error) throw error;
+    const tot = data.reduce((s, p) => s + Number(p.valor), 0), rec = data.filter(p => p.pago).reduce((s, p) => s + Number(p.valor), 0);
+    return { colunas: ['Nº', 'Criado em', 'Cliente', 'Serviço', 'Entrega', 'Status', 'Pagamento', 'Valor'],
+      linhas: data.map(p => [p.num, new Date(p.created_at).toLocaleDateString('pt-BR'), p.cliente, p.servico, p.entrega ? new Date(p.entrega).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '', PAP_ST[p.status][0], p.pago ? 'Pago' : 'Pendente', R(p.valor)]),
+      resumo: [['Pedidos no período', String(data.length)], ['Valor total', R(tot)], ['Recebido', R(rec)], ['A receber', R(tot - rec)], ...Object.entries(PAP_ST).map(([k, v]) => [v[0], String(data.filter(p => p.status === k).length)])] };
+  } },
+  desenvolve: { nome: 'Desenvolve', buscar: async (t, ini, fim) => {
+    const [h, k, m] = await Promise.all([sb.from('habitos').select('id,nome'), sb.from('habito_marcas').select('habito_id,data').gte('data', ini).lte('data', fim), sb.from('metas').select('*').order('prazo')]);
+    if (h.error || k.error || m.error) throw (h.error || k.error || m.error);
+    const dias = []; for (let d = new Date(ini + 'T12:00:00'); d <= new Date(fim + 'T12:00:00') && dias.length < 400; d.setDate(d.getDate() + 1)) dias.push(d.toISOString().slice(0, 10));
+    const n = h.data.length;
+    return { colunas: ['Data', 'Hábitos feitos', 'Total de hábitos', 'Cumprimento'],
+      linhas: dias.map(d => { const f = k.data.filter(x => x.data === d).length; return [dBR(d), f, n, n ? Math.round(f / n * 100) + '%' : '—']; }),
+      resumo: [['Metas concluídas', m.data.filter(x => x.concluida).length + ' de ' + m.data.length], ...m.data.map(x => ['Meta: ' + x.titulo, (x.concluida ? 'Concluída' : 'Em andamento') + (x.prazo ? ' (prazo ' + dBR(x.prazo) + ')' : '')])] };
+  } }
+};
+const agExp = nome => ({ nome, buscar: async (t, ini, fim) => {
+  const { data, error } = await sb.from('agendamentos').select('*').gte('data', ini).lte('data', fim).order('data').order('hora'); if (error) throw error;
+  const f = st => data.filter(a => a.status === st), soma = a => a.reduce((s, x) => s + Number(x.valor), 0);
+  return { colunas: ['Data', 'Hora', 'Cliente', 'WhatsApp', 'Serviço', 'Status', 'Valor'],
+    linhas: data.map(a => [dBR(a.data), a.hora, a.cliente, a.tel || '', a.servico, ST_AG[a.status][0], R(a.valor)]),
+    resumo: [['Agendamentos no período', String(data.length)], ['Concluídos', String(f('concluido').length)], ['Cancelados', String(f('cancelado').length)], ['Faturado (concluídos)', R(soma(f('concluido')))], ['Previsto (ainda agendados)', R(soma(f('agendado')))]] };
+} });
+EXP.barber = agExp('Barber'); EXP.beauty = agExp('Beauty');
+
+function expBotao(sis) {
+  expMod = sis; const h = document.querySelector('#conteudo h2');
+  if (h && EXP[sis]) h.insertAdjacentHTML('afterend', '<div style="margin:-.4rem 0 1rem"><button class="btn out sm" onclick="expAbrir()">📤 Exportar relatórios</button></div>');
+}
+function expPeriodo(per) {
+  const p2 = n => String(n).padStart(2, '0');
+  if (per === 'hoje') return [diaISO(0), diaISO(0)];
+  if (per === 'semana') return [diaISO((new Date().getDay() + 6) % 7), diaISO(0)];
+  if (per === 'mespassado') { const d = new Date(), y = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear(), m = d.getMonth() === 0 ? 12 : d.getMonth(); return [`${y}-${p2(m)}-01`, `${y}-${p2(m)}-${p2(new Date(y, m, 0).getDate())}`]; }
+  return [diaISO(0).slice(0, 7) + '-01', diaISO(0)];
+}
+function expAbrir() {
+  const c = EXP[expMod]; if (!c) return;
+  const el = document.createElement('div'); el.className = 'pmodal'; el.id = 'expModal'; el.onclick = ev => { if (ev.target === el) el.remove(); };
+  el.innerHTML = `<div class="pbox"><div style="display:flex;justify-content:space-between;align-items:center"><h3>📤 Exportar relatório</h3><button class="btn out sm" onclick="document.getElementById('expModal').remove()">✕</button></div>
+    ${c.tipos ? `<label>Relatório</label><select id="expTipo">${c.tipos.map(t => `<option value="${t[0]}">${t[1]}</option>`).join('')}</select>` : ''}
+    <label>Período</label><select id="expPer"><option value="hoje">Hoje</option><option value="semana">Esta semana</option><option value="mes" selected>Este mês</option><option value="mespassado">Mês passado</option><option value="custom">Personalizado</option></select>
+    <div class="row2 hidden" id="expCustom"><div><label>De</label><input type="date" id="expDe"></div><div><label>Até</label><input type="date" id="expAte"></div></div>
+    <label>Formato</label><select id="expFmt"><option value="pdf">PDF</option><option value="csv">Planilha (abre no Excel e no Google Planilhas)</option></select>
+    <button class="btn full" id="expGo" onclick="expGerar()">⬇️ Gerar e baixar</button></div>`;
+  document.body.appendChild(el);
+  $('expPer').onchange = () => $('expCustom').classList.toggle('hidden', $('expPer').value !== 'custom');
+  $('expDe').value = diaISO(0).slice(0, 7) + '-01'; $('expAte').value = diaISO(0);
+}
+function expBaixar(blob, nome) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+function expCSV(rel, nome) {
+  const e = v => { v = celM(v) ? v.m.toFixed(2).replace('.', ',') : String(v == null ? '' : v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const L = [rel.colunas, ...rel.linhas].map(l => l.map(e).join(';'));
+  if (rel.resumo.length) L.push('', 'RESUMO', ...rel.resumo.map(r => e(r[0]) + ';' + e(r[1])));
+  expBaixar(new Blob(['\ufeff' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' }), nome + '.csv');
+}
+function carregarLib(url, pronto) {
+  return new Promise((res, rej) => {
+    if (pronto()) return res();
+    const s = document.createElement('script'); s.src = url; s.onload = res;
+    s.onerror = () => rej(new Error('Não foi possível carregar o gerador de PDF. Confira a internet.')); document.head.appendChild(s);
+  });
+}
+async function expPDF(rel, nome, titulo, periodo) {
+  await carregarLib('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', () => window.jspdf && window.jspdf.jsPDF);
+  await carregarLib('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js', () => window.jspdf.jsPDF.API.autoTable);
+  const { jsPDF } = window.jspdf, doc = new jsPDF({ orientation: rel.colunas.length >= 7 ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
+  const cel = v => celM(v) ? fmt(v.m).replace(/\u00a0/g, ' ') : semEmoji(v);
+  doc.setFontSize(16); doc.text(semEmoji(titulo), 40, 44);
+  doc.setFontSize(10); doc.setTextColor(100); doc.text('Período: ' + periodo + '   |   Gerado em ' + agoraBR(), 40, 62); doc.setTextColor(0);
+  const dir = {}; if (rel.linhas[0]) rel.linhas[0].forEach((v, i) => { if (celM(v)) dir[i] = { halign: 'right' }; });
+  doc.autoTable({ startY: 76, head: [rel.colunas], body: rel.linhas.map(l => l.map(cel)), styles: { fontSize: 8, cellPadding: 4 }, headStyles: { fillColor: [10, 26, 63] }, columnStyles: dir });
+  if (!rel.linhas.length) { doc.setFontSize(10); doc.text('Nenhum registro neste período.', 40, doc.lastAutoTable.finalY + 18); }
+  if (rel.resumo.length) doc.autoTable({ startY: doc.lastAutoTable.finalY + (rel.linhas.length ? 18 : 34), head: [['Resumo', '']], body: rel.resumo.map(r => [semEmoji(r[0]), cel(r[1])]), styles: { fontSize: 9 }, headStyles: { fillColor: [29, 91, 255] }, columnStyles: { 1: { halign: 'right' } }, tableWidth: 300 });
+  doc.save(nome + '.pdf');
+}
+async function expGerar() {
+  const c = EXP[expMod], btn = $('expGo'); btn.disabled = true; btn.textContent = 'Gerando...';
+  try {
+    const per = $('expPer').value; let [ini, fim] = expPeriodo(per);
+    if (per === 'custom') { ini = $('expDe').value; fim = $('expAte').value; if (!ini || !fim || ini > fim) throw new Error('Confira as datas do período.'); }
+    const tipo = $('expTipo') ? $('expTipo').value : '', rel = await c.buscar(tipo, ini, fim);
+    const nome = `lcorp-${expMod}-${tipo || 'relatorio'}-${ini}_a_${fim}`;
+    const titulo = (window.perfilAtual ? window.perfilAtual.nome + ' - ' : '') + c.nome + (tipo ? ' - ' + c.tipos.find(t => t[0] === tipo)[1].replace(/ \(.*\)/, '') : '');
+    const pTxt = tipo === 'estoque' ? 'posição atual' : ini === fim ? dBR(ini) : dBR(ini) + ' a ' + dBR(fim);
+    if ($('expFmt').value === 'csv') expCSV(rel, nome); else await expPDF(rel, nome, titulo, pTxt);
+    $('expModal').remove(); alert('✅ Relatório gerado! Veja na pasta de downloads.');
+  } catch (e) { alert('Erro: ' + (e.message || e)); btn.disabled = false; btn.textContent = '⬇️ Gerar e baixar'; }
 }
 
 /* ===== PWA ===== */
