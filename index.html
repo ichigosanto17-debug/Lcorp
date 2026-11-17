@@ -76,6 +76,29 @@ body.marca .agm{--ac:var(--marca)!important}
 .psec h4{color:#EAB308;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem}
 .gal{display:flex;gap:.5rem;flex-wrap:wrap}.gal img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid var(--bd)}
 .msgprev{background:#DCF8C6;color:#111;border-radius:12px;padding:.9rem 1rem;font-size:.92rem;line-height:1.5;word-break:break-word}
+.clim .tabs button.act{background:var(--pri);border-color:var(--pri);color:#fff}
+.clim details summary{color:var(--pri)}
+body.claro{--bg:#FBF8F1;--card:#FFFFFF;--txt:#2B2417;--mut:#7A6E58;--bd:#E7DCC3;--ok:#15803D;--bad:#B91C1C;--warn:#B45309}
+body.claro header{background:#fff}
+body.claro input,body.claro select,body.claro textarea{background:#fff;color:var(--txt);border-color:var(--bd)}
+body.claro select option{background:#fff;color:#2B2417}
+body.claro .btn.out{background:#fff}
+body.claro .chip.on{background:#DCFCE7;color:#15803D}
+body.claro .chip.off{background:#FEE2E2;color:#B91C1C}
+body.claro .pmodal{background:rgba(43,36,23,.55)}
+.prog{height:10px;background:#EEE5CC;border-radius:6px;overflow:hidden}.prog i{display:block;height:100%;background:var(--pri)}
+.semana{overflow:auto;max-height:68vh;border:1px solid var(--bd);border-radius:12px;background:#fff}
+.semana table{border-collapse:separate;border-spacing:0;width:100%;min-width:680px;font-size:.78rem}
+.semana th,.semana td{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:.3rem;text-align:center;vertical-align:middle}
+.semana thead th{position:sticky;top:0;background:#FBF8F1;z-index:2}
+.semana .hh{position:sticky;left:0;background:#FBF8F1;z-index:1;width:54px;color:var(--mut);font-weight:600}
+.semana thead .hh{z-index:3}
+.semana th.hoje{background:#F5E7B5}
+.semana td{height:46px;min-width:82px;max-width:110px;cursor:pointer;overflow:hidden}
+.semana td.vazio:hover{background:#FBF1D0}
+.semana td.agendado{background:#F8E9B8;border-left:3px solid #A67C00}
+.semana td.concluido{background:#D9F2E0;border-left:3px solid #15803D}
+.semana td small{display:block;color:var(--mut);font-size:.68rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -113,7 +136,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const dBR = iso => iso ? iso.split('-').reverse().join('/') : 'sem vencimento';
-const NOMES = {barber:'💈 Barber', beauty:'✨ Beauty', desenvolve:'🧠 Desenvolve', finance:'💹 Finance', os:'🛠️ Ordem de Serviços', comercio:'🛍️ Comércio', papelaria:'🖨️ Papelaria'};
+const NOMES = {barber:'💈 Barber', beauty:'✨ Beauty', desenvolve:'🧠 Desenvolve', finance:'💹 Finance', os:'🛠️ Ordem de Serviços', comercio:'🛍️ Comércio', papelaria:'🖨️ Papelaria', clinica:'🌿 Clínica (pacotes)'};
 
 function toast(m) {
   m = String(m); let t = 'info';
@@ -130,7 +153,8 @@ window.alert = toast;
 function aplicarMarca(p) {
   const ok = p.role === 'client' && ativo(p);
   const cor = ok && /^#[0-9a-fA-F]{6}$/.test(p.cor || '') ? p.cor : null;
-  document.documentElement.style.setProperty('--pri', cor || '#2563EB');
+  const claro = ok && p.sistema === 'clinica'; document.body.classList.toggle('claro', claro);
+  document.documentElement.style.setProperty('--pri', cor || (claro ? '#A67C00' : '#2563EB'));
   document.documentElement.style.setProperty('--marca', cor || '#2563EB');
   document.body.classList.toggle('marca', !!cor);
   const logo = ok && p.logo && String(p.logo).startsWith('data:image/') ? p.logo : null;
@@ -175,7 +199,7 @@ async function iniciar() {
   if (perfil.role === 'admin') await painelAdmin(); else areaCliente(perfil);
 }
 
-const PRECOS = {barber:[49.9,245,450],beauty:[69.9,350,645],desenvolve:[14.9,69.9,129.9],finance:[39.9,199,359],os:[59.9,299,549],comercio:[79.9,399,719],papelaria:[69.9,349,639]};
+const PRECOS = {barber:[49.9,245,450],beauty:[69.9,350,645],desenvolve:[14.9,69.9,129.9],finance:[39.9,199,359],os:[59.9,299,549],comercio:[79.9,399,719],papelaria:[69.9,349,639],clinica:[89.9,449,819]};
 const PLN = ['Mensal','Semestral','Anual'], PLK = ['mensal','semestral','anual'], PER = ['/mês','/6 meses','/12 meses'];
 const PIX_CHAVE = '29858d90-02ba-4b85-a89c-a82401086516'; // troque aqui se sua chave Pix for outra
 const diasPara = v => v ? Math.round((new Date(v + 'T12:00:00') - new Date(hoje() + 'T12:00:00')) / 864e5) : null;
@@ -240,7 +264,7 @@ window.admCor = async id => {
 };
 window.admBackup = async () => {
   const b = $('btnBackup'); b.disabled = true; b.textContent = 'Gerando backup...';
-  const tabs = ['profiles','fin_lancamentos','fin_categorias','os_clientes','os_ordens','servicos','agendamentos','metas','habitos','habito_marcas','produtos','loja_clientes','vendas','venda_itens','mov_estoque','pap_pedidos'];
+  const tabs = ['profiles','fin_lancamentos','fin_categorias','os_clientes','os_ordens','servicos','agendamentos','metas','habitos','habito_marcas','produtos','loja_clientes','vendas','venda_itens','mov_estoque','pap_pedidos','cli_clientes','cli_pacotes','cli_contratos','cli_agenda','configuracoes'];
   const out = { gerado_em: new Date().toISOString(), tabelas: {} };
   for (const t of tabs) {
     let todas = [], de = 0;
@@ -335,6 +359,7 @@ function areaCliente(p) {
   if (ok && p.sistema === 'os') { osIniciar(); expBotao(p.sistema); return; }
   if (ok && p.sistema === 'comercio') { cmIniciar(); expBotao(p.sistema); return; }
   if (ok && p.sistema === 'papelaria') { papIniciar(); expBotao(p.sistema); return; }
+  if (ok && p.sistema === 'clinica') { cliIniciar(); expBotao(p.sistema); return; }
   if (ok && p.sistema === 'desenvolve') { dvIniciar(); expBotao(p.sistema); return; }
   if (ok && (p.sistema === 'barber' || p.sistema === 'beauty')) { agIniciar(p.sistema); expBotao(p.sistema); return; }
   $('conteudo').innerHTML = `
@@ -1281,6 +1306,272 @@ async function expGerar() {
     $('expModal').remove(); alert('✅ Relatório gerado! Veja na pasta de downloads.');
   } catch (e) { alert('Erro: ' + (e.message || e)); btn.disabled = false; btn.textContent = '⬇️ Gerar e baixar'; }
 }
+
+
+/* ===== MÓDULO CLÍNICA (agenda semanal, pacotes e sessões) ===== */
+let cliC = [], cliP = [], cliCt = [], cliAC = [], cliPr = [], cliSem = [], cliTab = 'sem', cliMon = null, cliFiltro = 'ativos', cliPre = null;
+const cli2 = n => String(n).padStart(2, '0');
+const cliISO = d => d.getFullYear() + '-' + cli2(d.getMonth() + 1) + '-' + cli2(d.getDate());
+const cliSegunda = d => { const x = new Date(d); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+const cliCnt = (ct, st) => cliAC.filter(a => a.contrato_id === ct && a.status === st).length;
+const cliProg = t => { const f = t.feitas_ini + cliCnt(t.id, 'concluido'); return { feitas: f, ag: cliCnt(t.id, 'agendado'), rest: Math.max(0, t.sessoes - f) }; };
+const cliNome = id => (cliC.find(c => c.id === id) || {}).nome || '—';
+const CLI_ST = { agendado: ['Agendado', '#A67C00'], concluido: ['Concluído', '#15803D'], cancelado: ['Cancelado', '#94A3B8'] };
+
+async function cliIniciar() {
+  cliTab = 'sem'; cliMon = cliSegunda(new Date()); cliPre = null;
+  $('conteudo').innerHTML = `<div class="clim"><h2 style="margin:.5rem 0 1rem">🌿 ${esc(window.perfilAtual ? window.perfilAtual.nome : 'Clínica')}</h2>
+    <div class="tabs">${[['sem', '📅 Semana'], ['novo', '➕ Agendar'], ['ses', '📦 Sessões'], ['cli', '👥 Clientes'], ['cat', '⚙️ Catálogo'], ['msg', '✉️ Mensagem']].map(t => `<button data-t="${t[0]}" class="${t[0] === cliTab ? 'act' : ''}">${t[1]}</button>`).join('')}</div>
+    <div id="agBody"><div class="spin"></div></div></div>`;
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { cliTab = b.dataset.t; cliAba(); cliDesenhar(); });
+  await cliCarregar();
+}
+function cliAba() { document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('act', x.dataset.t === cliTab)); }
+
+async function cliCarregar() {
+  const fim = new Date(cliMon); fim.setDate(fim.getDate() + 6);
+  const r = await Promise.all([
+    sb.from('cli_clientes').select('*').order('nome'),
+    sb.from('cli_pacotes').select('*').order('nome'),
+    sb.from('cli_contratos').select('*').order('id', { ascending: false }),
+    sb.from('cli_agenda').select('id,cliente_id,contrato_id,status,data').limit(5000),
+    sb.from('servicos').select('*').order('nome'),
+    sb.from('cli_agenda').select('*').gte('data', cliISO(cliMon)).lte('data', cliISO(fim)).order('data').order('hora'),
+    sb.from('configuracoes').select('msg_agenda').maybeSingle(),
+    sb.from('cli_fichas').select('id,cliente_id,modelo,status,token,respondida_em,expira_em,created_at').order('id', { ascending: false })
+  ]);
+  if (r.slice(0, 6).some(x => x.error)) { $('agBody').innerHTML = '<p class="msg">Não foi possível carregar. Confira se o script da Clínica foi executado no Supabase.</p>'; return; }
+  [cliC, cliP, cliCt, cliAC, cliPr, cliSem] = r.slice(0, 6).map(x => x.data);
+  agCfg = (r[6] && !r[6].error && r[6].data) ? r[6].data.msg_agenda : null;
+  cliFi = (r[7] && !r[7].error && r[7].data) ? r[7].data : [];
+  cliDesenhar();
+}
+async function cliSemana(d) {
+  cliMon = d === 0 ? cliSegunda(new Date()) : (() => { const x = new Date(cliMon); x.setDate(x.getDate() + 7 * d); return x; })();
+  await cliCarregar();
+}
+function cliNovoEm(data, hora) { cliPre = { data, hora }; cliTab = 'novo'; cliAba(); cliDesenhar(); }
+
+function cliDesenhar() {
+  const b = $('agBody'), hj = cliISO(new Date());
+  if (cliTab === 'sem') {
+    const dias = [...Array(7)].map((_, i) => { const d = new Date(cliMon); d.setDate(d.getDate() + i); return d; }), nd = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+    b.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.7rem">
+      <button class="btn out sm" onclick="cliSemana(-1)">◀ Anterior</button><b style="text-align:center">${cli2(dias[0].getDate())}/${cli2(dias[0].getMonth() + 1)} a ${cli2(dias[6].getDate())}/${cli2(dias[6].getMonth() + 1)}</b><button class="btn out sm" onclick="cliSemana(1)">Próxima ▶</button></div>
+      <button class="btn out sm" style="margin-bottom:.7rem" onclick="cliSemana(0)">Ir para hoje</button>
+      <div class="semana"><table><thead><tr><th class="hh"></th>${dias.map((d, i) => `<th class="${cliISO(d) === hj ? 'hoje' : ''}">${nd[i]}<br>${cli2(d.getDate())}/${cli2(d.getMonth() + 1)}</th>`).join('')}</tr></thead><tbody>
+      ${AG.beauty.horas.map(h => `<tr><th class="hh">${h}</th>${dias.map(d => { const iso = cliISO(d), a = cliSem.find(x => x.data === iso && x.hora === h && x.status !== 'cancelado');
+        return a ? `<td class="slot ${a.status}" onclick="cliAbrir(${a.id})"><b>${esc(cliNome(a.cliente_id).split(' ')[0])}</b><small>${a.contrato_id ? '📦 ' : ''}${esc(a.procedimento)}</small></td>` : `<td class="vazio" onclick="cliNovoEm('${iso}','${h}')"></td>`; }).join('')}</tr>`).join('')}</tbody></table></div>
+      <p class="mut" style="margin-top:.6rem;font-size:.85rem">Toque num horário livre para agendar, ou num agendamento para ver os detalhes. Deslize para o lado para ver todos os dias.</p>`;
+  } else if (cliTab === 'novo') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Novo agendamento</h3><form id="cliForm" autocomplete="off">
+      <datalist id="cliNomes">${cliC.map(c => `<option value="${esc(c.nome)}">`).join('')}</datalist><datalist id="cliProcs">${cliPr.map(p => `<option value="${esc(p.nome)}">`).join('')}</datalist>
+      <label>Cliente</label><input name="cliente" list="cliNomes" required placeholder="Digite o nome ou escolha uma cliente">
+      <label>WhatsApp (só se for cliente nova)</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX">
+      <label>Procedimento</label><input name="proc" list="cliProcs" required placeholder="Ex.: Drenagem linfática">
+      <label>Pacote</label><select name="ct"><option value="">Avulso (sem pacote)</option></select>
+      <div class="row2"><div><label>Data</label><input name="data" id="cliD" type="date" required min="${hj}" value="${cliPre ? cliPre.data : hj}"></div><div><label>Horário</label><select name="hora" id="cliH" required></select></div></div>
+      <label>Valor da sessão avulsa (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" value="0">
+      <button class="btn full" id="cliSalvarBtn" type="submit">✅ Confirmar agendamento</button></form></div>`;
+    const f = $('cliForm').elements;
+    f.cliente.oninput = () => { const c = cliC.find(k => k.nome.toLowerCase() === f.cliente.value.trim().toLowerCase());
+      const L = c ? cliCt.filter(t => t.cliente_id === c.id && cliProg(t).rest > 0) : [];
+      f.ct.innerHTML = '<option value="">Avulso (sem pacote)</option>' + L.map(t => `<option value="${t.id}">${esc(t.nome)} — restam ${cliProg(t).rest}</option>`).join('');
+      if (L.length) f.ct.value = L[0].id; if (c && c.tel && !f.tel.value) f.tel.value = c.tel; };
+    f.proc.oninput = () => { const p = cliPr.find(x => x.nome.toLowerCase() === f.proc.value.trim().toLowerCase()); if (p) f.valor.value = p.valor; };
+    $('cliD').onchange = cliHorasLivres; cliHorasLivres(); $('cliForm').onsubmit = cliSalvarAg;
+  } else if (cliTab === 'ses') {
+    const prog = cliCt.map(t => ({ t, p: cliProg(t) }));
+    const ativos = prog.filter(x => x.p.rest > 0), concl = prog.filter(x => x.p.rest === 0);
+    const avulsos = cliC.map(c => ({ c, f: cliAC.filter(a => a.cliente_id === c.id && !a.contrato_id && a.status === 'concluido').length, ag: cliAC.filter(a => a.cliente_id === c.id && !a.contrato_id && a.status === 'agendado').length })).filter(x => x.f + x.ag > 0);
+    const chips = [['ativos', 'Com sessões a fazer (' + ativos.length + ')'], ['concl', 'Concluídos (' + concl.length + ')'], ['avulsos', 'Avulsos (' + avulsos.length + ')'], ['todos', 'Todos']];
+    const lista = cliFiltro === 'avulsos' ? '' : (cliFiltro === 'ativos' ? ativos : cliFiltro === 'concl' ? concl : prog);
+    b.innerHTML = `<div class="kpis"><div class="card kpi"><small>Pacotes ativos</small><b>${ativos.length}</b></div><div class="card kpi"><small>Sessões a fazer</small><b>${ativos.reduce((s, x) => s + x.p.rest, 0)}</b></div>
+      <div class="card kpi"><small>Pacotes a receber</small><b>${fmt(cliCt.filter(t => !t.pago).reduce((s, t) => s + Number(t.valor), 0))}</b></div></div>
+      <div class="tabs" id="cliChips">${chips.map(c => `<button data-f="${c[0]}" class="${c[0] === cliFiltro ? 'act' : ''}">${c[1]}</button>`).join('')}</div>
+      ${cliFiltro === 'avulsos' ? (avulsos.map(x => `<div class="pcard" style="cursor:default"><b>${esc(x.c.nome)}</b><div class="mut">Atendimentos avulsos: ${x.f} feitos • ${x.ag} agendados</div></div>`).join('') || '<p class="mut" style="text-align:center;padding:1.5rem">Nenhuma cliente avulsa.</p>')
+      : lista.map(x => { const pc = Math.min(100, Math.round(x.p.feitas / x.t.sessoes * 100));
+        return `<div class="pcard" style="cursor:default"><div style="display:flex;justify-content:space-between;gap:.5rem"><b>${esc(cliNome(x.t.cliente_id))}</b><span class="chip2" style="background:${x.t.pago ? '#DCFCE7' : '#FEE2E2'};color:${x.t.pago ? '#15803D' : '#B91C1C'}">${x.t.pago ? 'Pago' : 'Pendente'}</span></div>
+          <div class="mut">${esc(x.t.nome)} • ${fmt(x.t.valor)}</div><div class="prog" style="margin:.5rem 0"><i style="width:${pc}%"></i></div>
+          <div style="font-size:.88rem"><b>${x.p.feitas}</b> feitas • <b>${x.p.ag}</b> agendadas • <b>${x.p.rest}</b> restantes <span class="mut">(de ${x.t.sessoes})</span></div>
+          <div style="display:flex;gap:.4rem;margin-top:.6rem"><button class="btn out sm" onclick="cliPago(${x.t.id})">${x.t.pago ? 'Marcar pendente' : '💰 Marcar pago'}</button><button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="cliExcluirCt(${x.t.id})">🗑</button></div></div>`; }).join('') || '<p class="mut" style="text-align:center;padding:1.5rem">Nenhum pacote aqui. Venda um pacote na aba 👥 Clientes.</p>'}`;
+    document.querySelectorAll('#cliChips button').forEach(x => x.onclick = () => { cliFiltro = x.dataset.f; cliDesenhar(); });
+  } else if (cliTab === 'cli') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.5rem">Nova cliente</h3><form id="cliFormC"><div class="row2"><div><label>Nome</label><input name="nome" required></div><div><label>WhatsApp</label><input name="tel" type="tel" placeholder="(87) 9XXXX-XXXX"></div></div>
+      <label>Observações</label><input name="obs" placeholder="Opcional"><button class="btn full" type="submit">✅ Cadastrar cliente</button></form></div>
+      <div class="card"><h3 style="margin-bottom:.5rem">Clientes (${cliC.length})</h3>${cliC.map(c => { const n = cliCt.filter(t => t.cliente_id === c.id && cliProg(t).rest > 0).length, fs = cliFi.filter(f => f.cliente_id === c.id);
+        return `<div class="item"><div><b>${esc(c.nome)}</b><br><span class="mut">📱 ${esc(c.tel) || '—'}${n ? ' • ' + n + ' pacote(s) ativo(s)' : ''}</span></div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:flex-start"><button class="btn out sm" onclick="cliVender(${c.id})">📦 Vender pacote</button><button class="btn out sm" onclick="cliFichaAbrir(${c.id})">📋 Ficha${fs.some(f => f.status === 'respondida') ? ' ✅' : fs.some(f => f.status === 'pendente') ? ' ⏳' : ''}</button><button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="cliExcluirCli(${c.id})">🗑</button></div></div>`; }).join('') || '<p class="mut">Nenhuma cliente ainda.</p>'}</div>`;
+    $('cliFormC').onsubmit = cliSalvarCli;
+  } else if (cliTab === 'cat') {
+    b.innerHTML = `<div class="card"><h3 style="margin-bottom:.4rem">Pacotes</h3><p class="mut" style="margin-bottom:.6rem">Cadastre os pacotes que você vende. Depois é só escolher na hora de vender para a cliente.</p>
+      <form id="cliFormP"><div class="row2"><div><label>Nome do pacote</label><input name="nome" required placeholder="Ex.: 10 sessões de drenagem"></div><div><label>Nº de sessões</label><input name="sessoes" type="number" min="1" required inputmode="numeric"></div></div>
+      <label>Valor (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" value="0"><button class="btn full" type="submit">✅ Adicionar pacote</button></form>
+      ${cliP.map(p => `<div class="item"><div><b>${esc(p.nome)}</b><br><span class="mut">${p.sessoes} sessões • ${fmt(p.valor)}</span></div><button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="cliExcluirPct(${p.id})">🗑</button></div>`).join('')}</div>
+      <div class="card"><h3 style="margin-bottom:.4rem">Procedimentos</h3><form id="cliFormPr"><div class="row2"><div><label>Nome</label><input name="nome" required></div><div><label>Valor (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" required></div></div>
+      <button class="btn full" type="submit">✅ Adicionar procedimento</button></form>${cliPr.map(p => `<div class="item"><div><b>${esc(p.nome)}</b><br><span class="mut">${fmt(p.valor)}</span></div><button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="cliExcluirProc(${p.id})">🗑</button></div>`).join('')}</div>`;
+    $('cliFormP').onsubmit = cliSalvarPct; $('cliFormPr').onsubmit = cliSalvarProc;
+  } else { agTab = 'msg'; agS = 'beauty'; agSv = cliPr; agDesenhar(); }
+}
+
+async function cliHorasLivres() {
+  const d = $('cliD').value, { data } = await sb.from('cli_agenda').select('hora').eq('data', d).neq('status', 'cancelado');
+  const oc = (data || []).map(x => x.hora), L = AG.beauty.horas.filter(h => !oc.includes(h));
+  $('cliH').innerHTML = L.length ? L.map(h => `<option>${h}</option>`).join('') : '<option value="">Sem horários livres</option>';
+  if (cliPre && cliPre.hora && L.includes(cliPre.hora)) $('cliH').value = cliPre.hora;
+}
+async function cliSalvarAg(e) {
+  e.preventDefault(); const f = e.target.elements, btn = $('cliSalvarBtn'); btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    if (!f.hora.value) throw new Error('Escolha um horário livre.');
+    const nome = f.cliente.value.trim(); let c = cliC.find(k => k.nome.toLowerCase() === nome.toLowerCase());
+    if (!c) { const r = await sb.from('cli_clientes').insert({ nome, tel: f.tel.value.trim() }).select().single(); if (r.error) throw r.error; c = r.data; }
+    const ct = f.ct.value ? Number(f.ct.value) : null;
+    const { error } = await sb.from('cli_agenda').insert({ cliente_id: c.id, contrato_id: ct, procedimento: f.proc.value.trim(), valor: ct ? 0 : (parseFloat(f.valor.value) || 0), data: f.data.value, hora: f.hora.value });
+    if (error) throw error;
+    cliPre = null; cliMon = cliSegunda(new Date(f.data.value + 'T12:00:00')); cliTab = 'sem'; cliAba(); await cliCarregar(); alert('✅ Agendamento confirmado!');
+  } catch (err) { alert(err.code === '23505' ? 'Esse horário já está ocupado.' : 'Erro: ' + (err.message || err)); btn.disabled = false; btn.textContent = '✅ Confirmar agendamento'; }
+}
+
+function cliAbrir(id) {
+  const a = cliSem.find(x => x.id === id); if (!a) return;
+  const c = cliC.find(k => k.id === a.cliente_id) || {}, t = a.contrato_id ? cliCt.find(x => x.id === a.contrato_id) : null, p = t ? cliProg(t) : null, st = CLI_ST[a.status];
+  const el = document.createElement('div'); el.className = 'pmodal'; el.id = 'cliModal'; el.onclick = ev => { if (ev.target === el) cliFechar(); };
+  el.innerHTML = `<div class="pbox"><div style="display:flex;justify-content:space-between;align-items:start;gap:.5rem"><div><h3>${esc(c.nome || '—')}</h3><p class="mut">${esc(a.procedimento)} • ${dBR(a.data)} às ${esc(a.hora)}</p></div><button class="btn out sm" onclick="cliFechar()">✕</button></div>
+    <div class="psec"><span class="chip2" style="background:${st[1]}22;color:${st[1]}">${st[0]}</span>${t ? `<p style="margin-top:.5rem">📦 <b>${esc(t.nome)}</b>: ${p.feitas} feitas, ${p.rest} restantes (de ${t.sessoes})</p>` : '<p class="mut" style="margin-top:.5rem">Atendimento avulso' + (a.valor ? ' • ' + fmt(a.valor) : '') + '</p>'}${c.tel ? `<p class="mut">📱 ${esc(c.tel)}</p>` : ''}</div>
+    <div class="psec" style="display:grid;gap:.5rem">${a.status !== 'concluido' ? `<button class="btn" onclick="cliStatus(${a.id},'concluido')">✅ Marcar como concluído${t ? ' (conta 1 sessão)' : ''}</button>` : `<button class="btn out" onclick="cliStatus(${a.id},'agendado')">↩️ Voltar para agendado</button>`}
+      <button class="btn out" onclick="cliStatus(${a.id},'cancelado')">❌ Cancelar agendamento</button>
+      ${c.tel ? `<button class="btn" style="background:#25D366;color:#052e16" onclick="cliZap(${a.id})">💬 Enviar lembrete no WhatsApp</button>` : ''}
+      <button class="btn out sm" style="color:var(--bad);border-color:var(--bad)" onclick="cliExcluirAg(${a.id})">🗑 Excluir</button></div></div>`;
+  document.body.appendChild(el); document.body.style.overflow = 'hidden';
+}
+function cliFechar() { const m = $('cliModal'); if (m) m.remove(); document.body.style.overflow = ''; }
+async function cliStatus(id, st) {
+  const { error } = await sb.from('cli_agenda').update({ status: st }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } cliFechar(); await cliCarregar();
+}
+async function cliExcluirAg(id) {
+  if (!confirm('Excluir este agendamento?')) return;
+  const { error } = await sb.from('cli_agenda').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } cliFechar(); await cliCarregar();
+}
+function cliZap(id) {
+  const a = cliSem.find(x => x.id === id), c = a && cliC.find(k => k.id === a.cliente_id); if (!c || !c.tel) { alert('Cliente sem WhatsApp cadastrado.'); return; }
+  let n = c.tel.replace(/\D/g, ''); if (n.length <= 11) n = '55' + n;
+  window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(agMsgCom(agCfg || AG_MSG_PADRAO, { cliente: c.nome, data: a.data, hora: a.hora, servico: a.procedimento, valor: a.valor })), '_blank');
+}
+
+function cliVender(clienteId) {
+  const el = document.createElement('div'); el.className = 'pmodal'; el.id = 'cliModal'; el.onclick = ev => { if (ev.target === el) cliFechar(); };
+  el.innerHTML = `<div class="pbox"><div style="display:flex;justify-content:space-between"><h3>📦 Vender pacote para ${esc(cliNome(clienteId))}</h3><button class="btn out sm" onclick="cliFechar()">✕</button></div>
+    <form id="cliFormV"><label>Pacote do catálogo</label><select name="pct"><option value="">Personalizado</option>${cliP.map(p => `<option value="${p.id}">${esc(p.nome)} — ${p.sessoes} sessões</option>`).join('')}</select>
+      <label>Nome do pacote</label><input name="nome" required><div class="row2"><div><label>Total de sessões</label><input name="sessoes" type="number" min="1" required inputmode="numeric"></div><div><label>Valor (R$)</label><input name="valor" type="number" step="0.01" min="0" inputmode="decimal" value="0"></div></div>
+      <div class="row2"><div><label>Sessões já feitas</label><input name="ini" type="number" min="0" inputmode="numeric" value="0"></div><div><label>Pagamento</label><select name="pago"><option value="0">Pendente</option><option value="1">Pago</option></select></div></div>
+      <button class="btn full" type="submit">✅ Vender pacote</button></form></div>`;
+  document.body.appendChild(el); document.body.style.overflow = 'hidden';
+  const f = $('cliFormV').elements;
+  f.pct.onchange = () => { const p = cliP.find(x => x.id === Number(f.pct.value)); if (p) { f.nome.value = p.nome; f.sessoes.value = p.sessoes; f.valor.value = p.valor; } };
+  $('cliFormV').onsubmit = async e => { e.preventDefault();
+    const { error } = await sb.from('cli_contratos').insert({ cliente_id: clienteId, nome: f.nome.value.trim(), sessoes: parseInt(f.sessoes.value), valor: parseFloat(f.valor.value) || 0, feitas_ini: parseInt(f.ini.value) || 0, pago: f.pago.value === '1' });
+    if (error) { alert('Erro: ' + error.message); return; } cliFechar(); cliTab = 'ses'; cliFiltro = 'ativos'; cliAba(); await cliCarregar(); alert('✅ Pacote registrado!'); };
+}
+async function cliPago(id) { const t = cliCt.find(x => x.id === id); const { error } = await sb.from('cli_contratos').update({ pago: !t.pago }).eq('id', id); if (error) { alert('Erro: ' + error.message); return; } await cliCarregar(); }
+async function cliExcluirCt(id) { if (!confirm('Excluir este pacote? Os atendimentos continuam na agenda como avulsos.')) return; const { error } = await sb.from('cli_contratos').delete().eq('id', id); if (error) { alert('Erro: ' + error.message); return; } await cliCarregar(); }
+async function cliSalvarCli(e) { e.preventDefault(); const f = e.target.elements; const { error } = await sb.from('cli_clientes').insert({ nome: f.nome.value.trim(), tel: f.tel.value.trim(), obs: f.obs.value.trim() }); if (error) { alert('Erro: ' + error.message); return; } await cliCarregar(); }
+async function cliExcluirCli(id) { if (!confirm('Excluir esta cliente, os pacotes e os agendamentos dela? Não dá para desfazer.')) return; const { error } = await sb.from('cli_clientes').delete().eq('id', id); if (error) { alert('Erro: ' + error.message); return; } await cliCarregar(); }
+async function cliSalvarPct(e) { e.preventDefault(); const f = e.target.elements; const { error } = await sb.from('cli_pacotes').insert({ nome: f.nome.value.trim(), sessoes: parseInt(f.sessoes.value), valor: parseFloat(f.valor.value) || 0 }); if (error) { alert('Não foi possível adicionar (talvez o nome já exista).'); return; } await cliCarregar(); }
+async function cliExcluirPct(id) { if (!confirm('Excluir este pacote do catálogo? Os já vendidos não mudam.')) return; const { error } = await sb.from('cli_pacotes').delete().eq('id', id); if (error) { alert('Erro: ' + error.message); return; } await cliCarregar(); }
+async function cliSalvarProc(e) { e.preventDefault(); const f = e.target.elements; const { error } = await sb.from('servicos').insert({ nome: f.nome.value.trim(), valor: parseFloat(f.valor.value) || 0 }); if (error) { alert('Não foi possível adicionar (talvez o nome já exista).'); return; } await cliCarregar(); }
+async function cliExcluirProc(id) { if (!confirm('Excluir este procedimento?')) return; const { error } = await sb.from('servicos').delete().eq('id', id); if (error) { alert('Erro: ' + error.message); return; } await cliCarregar(); }
+
+let cliFi = [];
+const cliFichaLink = tk => location.origin + '/ficha.html?t=' + tk;
+const cliWa = (tel, msg) => { let n = String(tel || '').replace(/\D/g, ''); if (n.length <= 11) n = '55' + n; return 'https://wa.me/' + n + '?text=' + encodeURIComponent(msg); };
+const cliFichaMsg = (c, tk) => `Olá ${c.nome.split(' ')[0]}! Aqui é da ${window.perfilAtual ? window.perfilAtual.nome : 'clínica'}. 😊\n\nPara o seu atendimento, preencha a sua ficha de anamnese neste link (leva uns 5 minutos):\n${cliFichaLink(tk)}`;
+const CLI_AV = [['fototipo', 'Fototipo cutâneo (Fitzpatrick)'], ['corpelo', 'Cor do pelo'], ['espessura', 'Espessura do pelo'], ['pele', 'Condição da pele'], ['foliculite', 'Presença de foliculite'], ['obs', 'Observações']];
+
+function cliFichaAbrir(clienteId) {
+  const c = cliC.find(k => k.id === clienteId); if (!c) return; cliFechar();
+  const L = cliFi.filter(f => f.cliente_id === clienteId);
+  const el = document.createElement('div'); el.className = 'pmodal'; el.id = 'cliModal'; el.onclick = ev => { if (ev.target === el) cliFechar(); };
+  el.innerHTML = `<div class="pbox"><div style="display:flex;justify-content:space-between;gap:.5rem"><h3>📋 Ficha de anamnese — ${esc(c.nome)}</h3><button class="btn out sm" onclick="cliFechar()">✕</button></div>
+    <p class="mut" style="margin:.4rem 0 .8rem">A cliente recebe um link pelo WhatsApp, responde pelo celular e as respostas ficam salvas aqui.</p>
+    <button class="btn full" style="margin:0 0 1rem" onclick="cliFichaNova(${clienteId})">➕ Gerar ficha de depilação a laser</button>
+    ${L.map(f => { const exp = new Date(f.expira_em) < new Date(), ok = f.status === 'respondida';
+      return `<div class="psec"><div style="display:flex;justify-content:space-between;gap:.5rem"><b>Criada em ${new Date(f.created_at).toLocaleDateString('pt-BR')}</b><span class="chip2" style="background:${ok ? '#DCFCE7' : '#FEF3C7'};color:${ok ? '#15803D' : '#92400E'}">${ok ? 'Respondida' : exp ? 'Link expirado' : 'Aguardando'}</span></div>
+      ${ok ? `<p class="mut">Respondida em ${new Date(f.respondida_em).toLocaleString('pt-BR')}</p><button class="btn out sm" style="margin-top:.5rem" onclick="cliFichaVer(${f.id})">👁 Ver respostas</button>`
+        : `<div style="display:grid;gap:.5rem;margin-top:.6rem">${c.tel && !exp ? `<a class="btn" style="background:#25D366;color:#052e16;display:flex;justify-content:center;text-decoration:none" target="_blank" href="${cliWa(c.tel, cliFichaMsg(c, f.token))}">💬 Enviar pelo WhatsApp</a>` : ''}
+        ${!exp ? `<button class="btn out sm" onclick="cliFichaCopiar('${f.token}')">🔗 Copiar link</button>` : '<p class="mut">Gere uma nova ficha para enviar outro link.</p>'}</div>`}
+      <button class="btn out sm" style="margin-top:.5rem;color:var(--bad);border-color:var(--bad)" onclick="cliFichaExcluir(${f.id},${clienteId})">🗑 Excluir</button></div>`; }).join('') || '<p class="mut">Nenhuma ficha enviada ainda.</p>'}</div>`;
+  document.body.appendChild(el); document.body.style.overflow = 'hidden';
+}
+async function cliFichaNova(clienteId) {
+  const { data, error } = await sb.from('cli_fichas').insert({ cliente_id: clienteId, modelo: 'depilacao_laser' }).select('id,cliente_id,modelo,status,token,respondida_em,expira_em,created_at').single();
+  if (error) { alert('Erro: ' + error.message + ' (confira se o script das fichas foi executado no Supabase)'); return; }
+  cliFi.unshift(data); cliFichaAbrir(clienteId); if (cliTab === 'cli') cliDesenhar();
+}
+function cliFichaCopiar(tk) { navigator.clipboard.writeText(cliFichaLink(tk)).then(() => alert('✅ Link copiado!')).catch(() => alert(cliFichaLink(tk))); }
+async function cliFichaExcluir(id, clienteId) {
+  if (!confirm('Excluir esta ficha? Se já foi respondida, as respostas serão apagadas.')) return;
+  const { error } = await sb.from('cli_fichas').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  cliFi = cliFi.filter(f => f.id !== id); cliFichaAbrir(clienteId); if (cliTab === 'cli') cliDesenhar();
+}
+async function cliFichaVer(id) {
+  const { data: f, error } = await sb.from('cli_fichas').select('*').eq('id', id).single();
+  if (error) { alert('Erro: ' + error.message); return; }
+  window.cliFichaAtual = f; const av = f.avaliacao || {}; cliFechar();
+  const el = document.createElement('div'); el.className = 'pmodal'; el.id = 'cliModal'; el.onclick = ev => { if (ev.target === el) cliFechar(); };
+  el.innerHTML = `<div class="pbox"><div style="display:flex;justify-content:space-between;gap:.5rem"><div><h3>📋 ${esc(cliNome(f.cliente_id))}</h3><p class="mut">Ficha respondida em ${new Date(f.respondida_em).toLocaleString('pt-BR')}</p></div><button class="btn out sm" onclick="cliFechar()">✕</button></div>
+    <div style="display:grid;gap:.5rem;margin:.8rem 0"><button class="btn" onclick="cliFichaPDF()">📄 Baixar PDF para imprimir e assinar</button></div>
+    ${((f.respostas || {}).secoes || []).map(s => `<div class="psec"><h4>${esc(s.titulo)}</h4>${s.itens.map(i => `<p style="margin-bottom:.45rem"><span class="mut" style="font-size:.85rem">${esc(i.p)}</span><br><b>${esc(i.r)}</b></p>`).join('')}</div>`).join('')}
+    <div class="psec"><h4>Avaliação profissional</h4>
+      <label>${CLI_AV[0][1]}</label><select id="cliAv_fototipo"><option value="">—</option>${['I', 'II', 'III', 'IV', 'V', 'VI'].map(x => `<option ${av.fototipo === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
+      ${CLI_AV.slice(1, 5).map(([k, l]) => `<label>${l}</label><input id="cliAv_${k}" value="${esc(av[k] || '')}">`).join('')}
+      <label>${CLI_AV[5][1]}</label><textarea id="cliAv_obs" rows="3">${esc(av.obs || '')}</textarea>
+      <button class="btn out" style="margin-top:.7rem" onclick="cliFichaSalvarAv(${f.id})">💾 Salvar avaliação</button></div>
+    <div class="psec"><h4>Declaração e consentimento</h4><p class="mut" style="font-size:.88rem">Aceite digital registrado em ${new Date(f.respondida_em).toLocaleString('pt-BR')}. Assinatura digitada: <b>${esc(f.nome_assinatura)}</b>.</p></div></div>`;
+  document.body.appendChild(el); document.body.style.overflow = 'hidden';
+}
+async function cliFichaSalvarAv(id) {
+  const av = {}; CLI_AV.forEach(([k]) => av[k] = $('cliAv_' + k).value.trim());
+  const { error } = await sb.from('cli_fichas').update({ avaliacao: av }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; } window.cliFichaAtual.avaliacao = av; alert('✅ Avaliação salva!');
+}
+async function cliFichaPDF() {
+  const f = window.cliFichaAtual; if (!f) return;
+  const av = {}; CLI_AV.forEach(([k]) => { const e = $('cliAv_' + k); av[k] = e ? e.value.trim() : ((f.avaliacao || {})[k] || ''); });
+  try {
+    await carregarLib('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', () => window.jspdf && window.jspdf.jsPDF);
+    await carregarLib('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js', () => window.jspdf.jsPDF.API.autoTable);
+    const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: 'pt', format: 'a4' }), cl = semEmoji(window.perfilAtual ? window.perfilAtual.nome : '');
+    doc.setFontSize(15); doc.text(cl, 40, 44); doc.setFontSize(11); doc.text('Ficha de anamnese - Depilacao a laser'.replace('cao', 'ção'), 40, 62);
+    doc.setFontSize(9); doc.setTextColor(100); doc.text('Cliente: ' + semEmoji(cliNome(f.cliente_id)) + '   |   Respondida em ' + new Date(f.respondida_em).toLocaleString('pt-BR'), 40, 78); doc.setTextColor(0);
+    let y = 92;
+    ((f.respostas || {}).secoes || []).forEach(s => { doc.autoTable({ startY: y, head: [[semEmoji(s.titulo), '']], body: s.itens.map(i => [semEmoji(i.p), semEmoji(i.r)]), styles: { fontSize: 8, cellPadding: 3 }, headStyles: { fillColor: [47, 93, 58] }, columnStyles: { 0: { cellWidth: 300 } } }); y = doc.lastAutoTable.finalY + 12; });
+    doc.autoTable({ startY: y, head: [['Avaliação profissional', '']], body: CLI_AV.map(([k, l]) => [l, semEmoji(av[k] || '')]), styles: { fontSize: 8, cellPadding: 3 }, headStyles: { fillColor: [166, 124, 0] }, columnStyles: { 0: { cellWidth: 300 } } });
+    y = doc.lastAutoTable.finalY + 16; if (y > 700) { doc.addPage(); y = 50; }
+    doc.setFontSize(8); const txt = doc.splitTextToSize('Aceite digital da declaração e do consentimento registrado em ' + new Date(f.respondida_em).toLocaleString('pt-BR') + '. Assinatura digitada: ' + semEmoji(f.nome_assinatura) + '.', 515); doc.text(txt, 40, y); y += txt.length * 11 + 40;
+    doc.setDrawColor(120); doc.line(40, y, 270, y); doc.line(310, y, 540, y); doc.setFontSize(8); doc.text('Assinatura do(a) paciente', 40, y + 12); doc.text('Assinatura da profissional', 310, y + 12); doc.text('Data: ____/____/________', 40, y + 32);
+    doc.save('ficha-anamnese-' + semEmoji(cliNome(f.cliente_id)).toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.pdf');
+  } catch (e) { alert('Erro: ' + (e.message || e)); }
+}
+
+EXP.clinica = { nome: 'Clínica', tipos: [['sessoes', 'Controle de sessões (pacotes)'], ['atend', 'Atendimentos do período']], buscar: async (t, ini, fim) => {
+  if (t === 'sessoes') {
+    const [c, ct, ag] = await Promise.all([sb.from('cli_clientes').select('id,nome'), sb.from('cli_contratos').select('*').order('id'), sb.from('cli_agenda').select('cliente_id,contrato_id,status')]);
+    if (c.error || ct.error || ag.error) throw (c.error || ct.error || ag.error);
+    const nm = id => (c.data.find(k => k.id === id) || {}).nome || '—', n = (id, st) => ag.data.filter(a => a.contrato_id === id && a.status === st).length;
+    const linhas = ct.data.map(x => { const f = x.feitas_ini + n(x.id, 'concluido'); return [nm(x.cliente_id), x.nome, x.sessoes, f, n(x.id, 'agendado'), Math.max(0, x.sessoes - f), x.pago ? 'Pago' : 'Pendente', R(x.valor)]; });
+    c.data.forEach(k => { const f = ag.data.filter(a => a.cliente_id === k.id && !a.contrato_id && a.status === 'concluido').length, g = ag.data.filter(a => a.cliente_id === k.id && !a.contrato_id && a.status === 'agendado').length; if (f + g) linhas.push([k.nome, 'Avulso (sem pacote)', '', f, g, '', '', R(0)]); });
+    return { colunas: ['Cliente', 'Pacote', 'Total', 'Feitas', 'Agendadas', 'Restantes', 'Pagamento', 'Valor'], linhas, resumo: [['Pacotes vendidos', String(ct.data.length)], ['Valor dos pacotes', R(ct.data.reduce((s, x) => s + Number(x.valor), 0))], ['A receber', R(ct.data.filter(x => !x.pago).reduce((s, x) => s + Number(x.valor), 0))]] };
+  }
+  const [c, ag] = await Promise.all([sb.from('cli_clientes').select('id,nome'), sb.from('cli_agenda').select('*').gte('data', ini).lte('data', fim).order('data').order('hora')]);
+  if (c.error || ag.error) throw (c.error || ag.error);
+  const A = ag.data, f = s => A.filter(a => a.status === s);
+  return { colunas: ['Data', 'Hora', 'Cliente', 'Procedimento', 'Tipo', 'Status', 'Valor'], linhas: A.map(a => [dBR(a.data), a.hora, (c.data.find(k => k.id === a.cliente_id) || {}).nome || '—', a.procedimento, a.contrato_id ? 'Pacote' : 'Avulso', CLI_ST[a.status][0], R(a.valor)]),
+    resumo: [['Atendimentos', String(A.length)], ['Concluídos', String(f('concluido').length)], ['Cancelados', String(f('cancelado').length)], ['Sessões de pacote concluídas', String(f('concluido').filter(a => a.contrato_id).length)], ['Faturado em avulsos', R(f('concluido').reduce((s, a) => s + Number(a.valor), 0))]] };
+} };
 
 /* ===== PWA ===== */
 let pwaEvt = null;
