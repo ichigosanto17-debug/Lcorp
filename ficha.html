@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Ficha de anamnese</title>
+<meta name="theme-color" content="#FBF8F1">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root{--bg:#FBF8F1;--card:#fff;--ink:#2B2417;--mut:#7A6E58;--bd:#E7DCC3;--gold:#A67C00;--green:#2F5D3A;--bad:#B91C1C;--r:14px}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+body{background:var(--bg);color:var(--ink);line-height:1.5}
+.wrap{max-width:640px;margin:0 auto;padding:1rem 1rem 3rem}
+.hidden{display:none!important}
+.spin{width:34px;height:34px;border:3px solid var(--bd);border-top-color:var(--gold);border-radius:50%;animation:g .8s linear infinite;margin:3rem auto}
+@keyframes g{to{transform:rotate(360deg)}}
+.topo{text-align:center;padding:1rem 0 .5rem}
+.topo img{max-height:84px;max-width:70%;margin:0 auto .6rem;display:block}
+.topo h1{font-size:1.3rem;color:var(--green)}
+.topo p{color:var(--mut);font-size:.9rem}
+.aviso{background:#FFF8E1;border:1px solid #F0DFA5;border-radius:var(--r);padding:.9rem 1rem;font-size:.88rem;margin:1rem 0}
+.sec{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:1.1rem;margin-bottom:1rem}
+.sec h2{font-size:1.02rem;color:var(--gold);margin-bottom:.8rem;letter-spacing:.01em}
+.q{margin-bottom:1rem}
+.q>p,.q>label.t{display:block;font-size:.95rem;margin-bottom:.4rem;font-weight:600}
+.q.erro>p,.q.erro>label.t{color:var(--bad)}
+.q.erro{border-left:3px solid var(--bad);padding-left:.6rem}
+input[type=text],input[type=tel],input[type=date],textarea{width:100%;padding:.8rem .9rem;border:1px solid var(--bd);border-radius:10px;font-size:1rem;background:#fff;color:var(--ink)}
+input:focus,textarea:focus{outline:none;border-color:var(--gold)}
+.yn{display:flex;gap:.6rem}
+.yn label,.chips label{cursor:pointer}
+.yn input,.chips input{position:absolute;opacity:0;pointer-events:none}
+.yn span,.chips span{display:block;text-align:center;padding:.65rem 1.2rem;border:1.5px solid var(--bd);border-radius:10px;font-weight:600;min-width:84px;background:#fff}
+.yn input:checked+span,.chips input:checked+span{background:var(--gold);border-color:var(--gold);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem}
+.chips span{min-width:0;padding:.55rem .9rem;font-weight:500;font-size:.92rem}
+.det{margin-top:.5rem}
+.decl p{font-size:.88rem;color:#4A3F2A;margin-bottom:.6rem}
+.chk{display:flex;gap:.6rem;align-items:flex-start;font-size:.92rem;margin:.8rem 0}
+.chk input{margin-top:.25rem;width:20px;height:20px;accent-color:var(--gold);flex:none}
+.btn{display:block;width:100%;padding:1rem;border:none;border-radius:12px;background:linear-gradient(135deg,var(--gold),#C99A1B);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none}
+.btn:disabled{opacity:.6}
+.btn.wa{background:#25D366;color:#052e16;margin-top:1rem}
+.msg{color:var(--bad);font-size:.9rem;margin-top:.7rem;text-align:center}
+.caixa{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:2rem 1.2rem;text-align:center;margin-top:1.5rem}
+.caixa h2{color:var(--green);margin-bottom:.5rem}
+.rod{text-align:center;color:var(--mut);font-size:.8rem;margin-top:1.5rem}
+.rod a{color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="spin"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://lkqpuliqsmsllezbjjmg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_EJt_2gWwUnPJou-aaEVNmQ_ZJrQU3CJ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const TOKEN = new URLSearchParams(location.search).get('t');
+
+// ===== MODELO DA FICHA: depilação a laser =====
+const yn = (id, p, det) => ({ id, tipo: 'yn', p, det });
+const MODELO = {
+  titulo: 'Ficha de anamnese – Depilação a laser',
+  profissional: 'Dra. Willyane Carvalho · Fisioterapia e Estética Avançada',
+  secoes: [
+    { t: '1. Identificação', campos: [
+      { id: 'nome', tipo: 'texto', p: 'Nome completo', req: true },
+      { id: 'nasc', tipo: 'data', p: 'Data de nascimento', req: true },
+      { id: 'cpf', tipo: 'texto', p: 'CPF (opcional)' },
+      { id: 'tel', tipo: 'tel', p: 'Telefone/WhatsApp', req: true },
+      { id: 'prof', tipo: 'texto', p: 'Profissão' }] },
+    { t: '2. Histórico de saúde', campos: [
+      yn('doenca', 'Possui alguma doença diagnosticada?', 'Qual?'),
+      yn('diab', 'Possui diabetes?'),
+      yn('horm', 'Possui alterações hormonais?', 'Qual?'),
+      yn('auto', 'Possui alguma doença autoimune?', 'Qual?'),
+      yn('cancer', 'Possui histórico de câncer ou está em tratamento oncológico?'),
+      yn('epil', 'Possui epilepsia ou histórico de convulsões?'),
+      yn('cicat', 'Apresenta problemas de cicatrização ou tendência a queloides?'),
+      yn('alerg', 'Possui alergias?', 'Quais?'),
+      yn('med', 'Faz uso contínuo de medicamentos?', 'Quais?'),
+      yn('foto', 'Utiliza ou utilizou recentemente medicamentos fotossensibilizantes, isotretinoína ou outros medicamentos que possam interferir no tratamento?', 'Quais?')] },
+    { t: '3. Histórico dermatológico', campos: [
+      yn('pele', 'Apresenta alguma doença de pele?', 'Qual?'),
+      yn('mancha', 'Possui manchas, melasma ou hiperpigmentação na região?'),
+      yn('foli', 'Apresenta foliculite ou pelos encravados?'),
+      yn('herpes', 'Possui histórico de herpes na região a ser tratada?'),
+      yn('ferida', 'Apresenta feridas, irritações, infecções ou lesões na área?'),
+      yn('sol', 'Possui bronzeamento recente ou exposição solar intensa?')] },
+    { t: '4. Histórico de depilação', campos: [
+      yn('jalaser', 'Já realizou depilação a laser?'),
+      { id: 'equip', tipo: 'texto', p: 'Qual equipamento?', se: 'jalaser|Sim' },
+      { id: 'ultima', tipo: 'texto', p: 'Quando realizou a última sessão?', se: 'jalaser|Sim' },
+      { id: 'metodo', tipo: 'multi', p: 'Qual método de depilação utiliza atualmente?', op: ['Lâmina', 'Cera', 'Creme depilatório', 'Pinça', 'Outro'] },
+      { id: 'metodo_outro', tipo: 'texto', p: 'Qual outro método?', se: 'metodo|Outro' },
+      yn('reacao', 'Possui histórico de reações após depilação?', 'Quais?')] },
+    { t: '5. Informações específicas', campos: [
+      yn('gest', 'É gestante?'),
+      yn('amam', 'Está amamentando?'),
+      yn('impl', 'Possui implantes, próteses ou dispositivos eletrônicos na região a ser tratada?', 'Qual?'),
+      yn('tat', 'Possui tatuagem ou micropigmentação na área?'),
+      yn('queim', 'Já apresentou queimaduras ou alterações de pigmentação após procedimentos estéticos?')] },
+    { t: '6. Áreas de interesse', campos: [
+      { id: 'areas', tipo: 'multi', p: 'Em quais áreas você tem interesse?', op: ['Axilas', 'Virilha completa', 'Virilha simples', 'Perianal', 'Buço', 'Queixo', 'Face completa', 'Meia perna', 'Perna completa', 'Braços', 'Glúteos', 'Barriga', 'Costas', 'Outras'] },
+      { id: 'areas_outras', tipo: 'texto', p: 'Quais outras áreas?', se: 'areas|Outras' }] }
+  ],
+  declaracao: [
+    'Declaro que todas as informações fornecidas nesta ficha são verdadeiras e completas. Comprometo-me a informar qualquer alteração no meu estado de saúde, uso de medicamentos, exposição solar ou condição da pele durante o tratamento.',
+    'Fui informado(a) de que a depilação a laser pode apresentar efeitos adversos, como vermelhidão, sensibilidade, edema, queimaduras e alterações de pigmentação, e que os resultados variam de acordo com características individuais.',
+    'Estou ciente de que a realização do procedimento depende da avaliação profissional e da ausência de contraindicações.',
+    'Autorizo a realização da avaliação e, após esclarecimentos e consentimento específico, do tratamento proposto.'
+  ]
+};
+
+let INFO = null, F = null;
+
+function campoHTML(c) {
+  const se = c.se ? ` data-se="${c.se}"` : '';
+  if (c.tipo === 'yn') return `<div class="q" data-id="${c.id}"><p>${esc(c.p)}</p>
+    <div class="yn"><label><input type="radio" name="${c.id}" value="Não"><span>Não</span></label><label><input type="radio" name="${c.id}" value="Sim"><span>Sim</span></label></div>
+    ${c.det ? `<div class="det hidden" data-se="${c.id}|Sim"><input type="text" name="${c.id}_det" placeholder="${esc(c.det)}"></div>` : ''}</div>`;
+  if (c.tipo === 'multi') return `<div class="q" data-id="${c.id}"><p>${esc(c.p)}</p><div class="chips">${c.op.map(o => `<label><input type="checkbox" name="${c.id}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join('')}</div></div>`;
+  const t = c.tipo === 'data' ? 'date' : c.tipo === 'tel' ? 'tel' : 'text';
+  return `<div class="q ${c.se ? 'hidden' : ''}" data-id="${c.id}"${se}><label class="t" for="f_${c.id}">${esc(c.p)}${c.req ? ' *' : ''}</label><input type="${t}" id="f_${c.id}" name="${c.id}" ${t === 'tel' ? 'inputmode="tel"' : ''} autocomplete="off"></div>`;
+}
+
+function val(id) {
+  const els = [...F.querySelectorAll(`[name="${id}"]`)]; if (!els.length) return '';
+  if (els[0].type === 'checkbox') return els.filter(e => e.checked).map(e => e.value);
+  if (els[0].type === 'radio') { const r = els.find(e => e.checked); return r ? r.value : ''; }
+  return els[0].value.trim();
+}
+function condicoes() {
+  F.querySelectorAll('[data-se]').forEach(el => {
+    const [id, v] = el.dataset.se.split('|'), x = val(id);
+    el.classList.toggle('hidden', !(Array.isArray(x) ? x.includes(v) : x === v));
+  });
+}
+const visivel = el => !el.closest('.hidden');
+
+function desenhar() {
+  const nome = (INFO.cliente || '').split(' ')[0];
+  $('app').innerHTML = `<div class="topo">${INFO.logo && String(INFO.logo).startsWith('data:image/') ? `<img src="${INFO.logo}" alt="">` : ''}<h1>${esc(INFO.clinica || 'Clínica')}</h1><p>${esc(MODELO.titulo)}</p><p>${esc(MODELO.profissional)}</p></div>
+    <div class="aviso"><b>Olá${nome ? ', ' + esc(nome) : ''}!</b> Responda com sinceridade: essas informações são importantes para a sua segurança no tratamento. Leva uns 5 minutos.<br><br>
+    🔒 Seus dados de saúde serão usados apenas pela clínica, para avaliar o seu atendimento, e ficam protegidos com acesso restrito. Leia a <a href="privacidade.html" target="_blank">política de privacidade</a>.</div>
+    <form id="ficha" novalidate>
+    ${MODELO.secoes.map(s => `<div class="sec"><h2>${esc(s.t)}</h2>${s.campos.map(campoHTML).join('')}</div>`).join('')}
+    <div class="sec decl"><h2>7. Declaração e consentimento</h2>${MODELO.declaracao.map(p => `<p>${esc(p)}</p>`).join('')}
+      <label class="chk"><input type="checkbox" id="consent"><span>Li e concordo com a declaração acima e autorizo o tratamento dos meus dados de saúde pela clínica, para esta finalidade.</span></label>
+      <div class="q" data-id="assin" style="margin-top:.8rem"><label class="t" for="f_assin">Digite seu nome completo como assinatura *</label><input type="text" id="f_assin" name="assin" autocomplete="off"></div></div>
+    <button class="btn" id="enviar" type="submit">Enviar ficha</button><p class="msg hidden" id="erro"></p></form>
+    <div class="rod">Ficha enviada por link individual e seguro. <a href="privacidade.html" target="_blank">Privacidade</a></div>`;
+  F = $('ficha'); F.addEventListener('input', condicoes); F.addEventListener('change', condicoes); F.addEventListener('submit', enviar); condicoes();
+  const n = F.querySelector('[name=nome]'); if (n && INFO.cliente) n.value = INFO.cliente;
+}
+
+function montar() {
+  const secoes = [];
+  MODELO.secoes.forEach(s => {
+    const itens = [];
+    s.campos.forEach(c => {
+      const el = F.querySelector(`[data-id="${c.id}"]`); if (!el || !visivel(el)) return;
+      let r = val(c.id);
+      if (c.tipo === 'multi') { if (!r.length) return; r = r.join(', '); if (c.id === 'metodo' && val('metodo_outro')) r += ' (' + val('metodo_outro') + ')'; if (c.id === 'areas' && val('areas_outras')) r += ' (' + val('areas_outras') + ')'; if (c.id === 'metodo_outro' || c.id === 'areas_outras') return; }
+      if (c.id === 'metodo_outro' || c.id === 'areas_outras') return;
+      if (c.tipo === 'yn') { if (r === 'Sim' && c.det && val(c.id + '_det')) r += ' — ' + val(c.id + '_det'); }
+      if (c.tipo === 'data' && r) r = r.split('-').reverse().join('/');
+      if (r === '' || r == null) r = '—';
+      itens.push({ p: c.p, r });
+    });
+    secoes.push({ titulo: s.t, itens });
+  });
+  return { modelo: MODELO.titulo, secoes };
+}
+
+async function enviar(e) {
+  e.preventDefault(); const erro = $('erro'); erro.classList.add('hidden');
+  F.querySelectorAll('.q.erro').forEach(q => q.classList.remove('erro'));
+  const faltam = [];
+  MODELO.secoes.forEach(s => s.campos.forEach(c => {
+    const el = F.querySelector(`[data-id="${c.id}"]`); if (!el || !visivel(el)) return;
+    const v = val(c.id); if ((c.tipo === 'yn' || c.req) && (Array.isArray(v) ? !v.length : !v)) faltam.push(el);
+  }));
+  if (!val('assin') || val('assin').length < 5) faltam.push(F.querySelector('[data-id="assin"]'));
+  if (faltam.length) { faltam.forEach(q => q.classList.add('erro')); faltam[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); erro.textContent = 'Faltam ' + faltam.length + ' resposta(s) obrigatória(s), marcadas em vermelho.'; erro.classList.remove('hidden'); return; }
+  if (!$('consent').checked) { erro.textContent = 'Para enviar, marque a caixa de concordância e consentimento.'; erro.classList.remove('hidden'); $('consent').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const btn = $('enviar'); btn.disabled = true; btn.textContent = 'Enviando...';
+  const { data, error } = await sb.rpc('ficha_enviar', { p_token: TOKEN, p_respostas: montar(), p_nome: val('assin'), p_consent: true });
+  if (error || !data || data.erro) { btn.disabled = false; btn.textContent = 'Enviar ficha'; erro.textContent = data && data.erro === 'ja_respondida' ? 'Esta ficha já foi enviada. Obrigado!' : data && data.erro === 'expirada' ? 'Este link expirou. Peça um novo à clínica.' : 'Não foi possível enviar agora. Confira a internet e tente de novo.'; erro.classList.remove('hidden'); return; }
+  const nome = (val('nome') || '').split(' ')[0];
+  const tel = String(data.tel_clinica || '').replace(/\D/g, ''), n = tel.length && tel.length <= 11 ? '55' + tel : tel;
+  $('app').innerHTML = `<div class="caixa"><div style="font-size:2.4rem">🌿</div><h2>Ficha enviada com sucesso!</h2><p>Obrigada${nome ? ', ' + esc(nome) : ''}! A clínica já pode ver as suas respostas.</p>
+    ${n ? `<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${n}?text=${encodeURIComponent('Olá! Sou ' + (val('nome') || 'cliente') + '. Acabei de preencher a minha ficha de anamnese.')}">📲 Avisar a clínica no WhatsApp</a><p class="rod">O aviso é só uma mensagem curta, sem as suas respostas.</p>` : ''}</div>`;
+  window.scrollTo(0, 0);
+}
+
+function aviso(t, s) { $('app').innerHTML = `<div class="caixa"><div style="font-size:2.2rem">${s}</div><h2>${t}</h2></div>`; }
+async function iniciar() {
+  if (!TOKEN) return aviso('Este link não é válido.', '⚠️');
+  const { data, error } = await sb.rpc('ficha_obter', { p_token: TOKEN });
+  if (error || !data) return aviso('Não foi possível abrir a ficha. Confira a internet e tente de novo.', '⚠️');
+  if (data.erro) return aviso({ nao_encontrada: 'Este link não é válido.', ja_respondida: 'Esta ficha já foi enviada. Obrigado!', expirada: 'Este link expirou. Peça um novo à clínica.', indisponivel: 'Este formulário não está disponível no momento.' }[data.erro] || 'Link indisponível.', data.erro === 'ja_respondida' ? '✅' : '⚠️');
+  INFO = data; if (data.cor && /^#[0-9a-fA-F]{6}$/.test(data.cor)) document.documentElement.style.setProperty('--gold', data.cor);
+  desenhar();
+}
+iniciar();
+</script>
+</body>
+</html>
